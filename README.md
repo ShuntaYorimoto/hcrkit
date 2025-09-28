@@ -72,7 +72,7 @@ Use `hcrkit -h` or `hcrkit --help` for full parameter list.
 | `--initiator_custom` | Custom initiator CSV file | Optional |
 
 ### Advanced Usage
-1. Extract Target IDs from GFF3
+1. Extract Target IDs from GFF3  
 For genes with multiple isoforms, first extract target sequence IDs by gene name:
 
 ```
@@ -84,7 +84,7 @@ hcrkit -i HsDDX4.fasta -d human_transcriptome.fasta -p HsDDX4 \
   --initiator_id A161 --target_ids HsDDX4_out/HsDDX4_target_ids.txt
 ```
 
-2. Custom GC Content Ranges
+2. Custom GC Content Ranges  
 Design probes with different GC stringency:
 
 ```
@@ -93,23 +93,21 @@ hcrkit -i gene.fasta -d db.fasta -p test --initiator_id S23 \
   --min_gc 40 --max_gc 60
 ```
 
-3. Custom Initiator Sequences
-Create a CSV file with custom initiators (no header):
+3. Custom Initiator Sequences  
+Create a CSV file with custom initiators (no header) (_Example sequences from Choi et al., 2018_):  
 ```
 B1,GAGGAGGGCAGCAAACGG
 B2,CCTCGTAAATCCTCATCA
 B3,GTCCCTGCCTCTATATCT
 ```
-_Example sequences from Choi et al., 2018_
 
-Use custom initiators:
 ```
 hcrkit -i gene.fasta -d db.fasta -p test \
   --initiator_id B1 --initiator_custom my_initiators.csv
 ```
 
 ## Output Files
-All outputs are saved in {prefix}_out/ directory:
+All outputs are saved in `{prefix}_out/` directory:
 
 | File | Description |
 |------|-------------|
@@ -118,5 +116,5 @@ All outputs are saved in {prefix}_out/ directory:
 | `{prefix}_probe_candidates_gc{min}-{max}.fasta` |	Initial probe candidates |
 | `{prefix}_blast_results_gc{min}-{max}.tsv` |	BLAST search results |
 
-## Ciation
-
+## Citation
+Preparing...
