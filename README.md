@@ -41,8 +41,8 @@ pip install -e .
 
 4. Verify installation:
 ```
-hcrkit --help
-extract_target_ids --help
+hcrkit.py -h
+extract_target_ids.py -h
 blastn -help
 ```
 
@@ -50,14 +50,14 @@ blastn -help
 ### Basic Usage
 ```
 # Usage
-hcrkit -i INPUT_FASTA -d DATABASE -p PREFIX --initiator_id INITIATOR_ID [OPTIONS]
+hcrkit.py -i INPUT_FASTA -d DATABASE -p PREFIX --initiator_id INITIATOR_ID [OPTIONS]
 
 # Example
-hcrkit -i ApDll.fasta -d Apisum_transcripts.fasta -p ApDll --initiator_id S73
+hcrkit.py -i ApDll.fasta -d Apisum_transcripts.fasta -p ApDll --initiator_id S73
 ```
 
 #### Options
-Use `hcrkit -h` or `hcrkit --help` for full parameter list.
+Use `hcrkit.py -h` or `hcrkit.py --help` for full parameter list.
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `-i, --input` | Target gene FASTA file | Required |
@@ -77,10 +77,10 @@ For genes with multiple isoforms, first extract target sequence IDs by gene name
 
 ```
 # Extract all DDX4 isoforms
-extract_target_ids -i human_annotation.gff3 -s "DDX4" -p HsDDX4
+extract_target_ids.py -i human_annotation.gff3 -s "DDX4" -p HsDDX4
 
 # Use extracted IDs in probe design
-hcrkit -i HsDDX4.fasta -d human_transcriptome.fasta -p HsDDX4 \
+hcrkit.py -i HsDDX4.fasta -d human_transcriptome.fasta -p HsDDX4 \
   --initiator_id A161 --target_ids HsDDX4_out/HsDDX4_target_ids.txt
 ```
 
@@ -89,7 +89,7 @@ Design probes with different GC stringency:
 
 ```
 # Relaxed GC range (more probe candidates)
-hcrkit -i gene.fasta -d db.fasta -p test --initiator_id S23 \
+hcrkit.py -i gene.fasta -d db.fasta -p test --initiator_id S23 \
   --min_gc 40 --max_gc 60
 ```
 
@@ -102,7 +102,7 @@ B3,GTCCCTGCCTCTATATCT
 ```
 
 ```
-hcrkit -i gene.fasta -d db.fasta -p test \
+hcrkit.py -i gene.fasta -d db.fasta -p test \
   --initiator_id B1 --initiator_custom my_initiators.csv
 ```
 
