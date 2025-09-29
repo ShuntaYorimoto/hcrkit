@@ -107,7 +107,7 @@ hcrkit.py -i gene.fasta -d db.fasta -p test \
 
 ## Algorithm and Implementation Details
 ### Workflow Overview
-HCRKit implements a 3-step automated pipeline:
+`hcrkit` implements a 3-step automated pipeline:
 
 1. GC Content Filtering (`step01_filter_gc_content.py`)
 - Generates 52bp probe candidates using sliding window (1bp step)
@@ -126,7 +126,7 @@ HCRKit implements a 3-step automated pipeline:
 - Generates final HCR probe pairs with specified initiator sequences
 
 ### On-target Sequence Handling
-**Automatic on-target detection:** When `--target_ids` is not specified, hcrkit automatically uses the input FASTA sequence ID as on-target references. This is suitable for:
+**Automatic on-target detection:** When `--target_ids` is not specified, `hcrkit` automatically uses the input FASTA sequence ID as on-target references. This is suitable for:
 - Single-isoform gene
 - Pre-selected isoform gene with non-redundant database (e.g., longest isoform representatives)
 
