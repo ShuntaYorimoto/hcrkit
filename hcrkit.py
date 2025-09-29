@@ -37,7 +37,7 @@ os.makedirs(outdir, exist_ok=True)
 gc_suffix = f"gc{int(args.min_gc)}-{int(args.max_gc)}"
 
 # Step 1: GC content filtering
-cmd1 = ['python3', 'src/step01_filter_gc_content.py', 
+cmd1 = ['step01_filter_gc_content.py', 
         '-i', args.input,
         '-p', args.prefix,
         '--min_gc', str(args.min_gc), 
@@ -47,7 +47,7 @@ run_step("Step 1: GC Content Filtering", cmd1)
 
 # Step 2: BLAST search
 probe_fasta = os.path.join(outdir, f"{args.prefix}_probe_candidates_{gc_suffix}.fasta")
-cmd2 = ['python3', 'src/step02_blast_search.py',
+cmd2 = ['step02_blast_search.py',
         '--probe_fasta', probe_fasta, 
         '-d', args.database, 
         '-p', args.prefix,
@@ -60,7 +60,7 @@ run_step("Step 2: BLAST Search", cmd2)
 
 # Step 3: Filter and generate probes
 blast_results = os.path.join(outdir, f"{args.prefix}_blast_results_{gc_suffix}.tsv")
-cmd3 = ['python3', 'src/step03_filter_and_generate.py',
+cmd3 = ['step03_filter_and_generate.py',
         '-i', args.input,
         '--blast_results', blast_results, 
         '--probe_fasta', probe_fasta, 

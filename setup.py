@@ -7,7 +7,13 @@ setup(
     author="Shunta Yorimoto",
     url="https://github.com/ShuntaYorimoto/hcrkit",
     packages=find_packages(),
-    scripts=['hcrkit.py', 'extract_target_ids.py'],
+    scripts=[
+        'hcrkit.py', 
+        'extract_target_ids.py',
+        'src/step01_filter_gc_content.py',
+        'src/step02_blast_search.py', 
+        'src/step03_filter_and_generate.py'
+        ],
     install_requires=[
         'biopython>=1.78',
         'pandas>=1.3.0',
