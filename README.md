@@ -71,7 +71,7 @@ For genes with multiple isoforms, first extract target sequence IDs by gene name
 
 ```
 # Extract all DDX4 isoforms
-extract_target_ids.py -i human_annotation.gff3 -s "DDX4" -p HsDDX4
+extract_target_ids.py -i human_annotation.gff3 -s DDX4 -p HsDDX4
 
 # Use extracted IDs in probe design
 hcrkit.py -i HsDDX4.fasta -d human_transcriptome.fasta -p HsDDX4 \
