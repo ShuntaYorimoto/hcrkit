@@ -27,16 +27,11 @@ cd hcrkit
 ```
 2. Create and activate conda environment:
 ```
-conda create -n hcrkit python=3.13 blast -c conda-forge -c bioconda
+conda env create -f environment.yml
 conda activate hcrkit
 ```
 
-3. Install hcrkit and Python dependencies:
-```
-pip install -e .
-```
-
-4. Verify installation:
+3. Verify installation:
 ```
 hcrkit.py -h
 extract_target_ids.py -h
