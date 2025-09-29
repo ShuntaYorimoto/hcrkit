@@ -1,5 +1,5 @@
 # hcrkit
-Automated pipeline for HCR (Hybridization Chain Reaction) probe design with customizable parameters
+Automated pipeline for isHCR (_in situ_ Hybridization Chain Reaction) probe design with customizable parameters
 
 ## Features
 
