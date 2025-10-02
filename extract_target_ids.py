@@ -7,10 +7,11 @@ import argparse
 import os
 import re
 
-parser = argparse.ArgumentParser(description='Extract mRNA IDs from GFF3 based on exact gene match')
-parser.add_argument('-i', '--input', required=True, help='Input GFF3 file')
-parser.add_argument('-s', '--search', required=True, help='Exact search term for gene name')
-parser.add_argument('-p', '--prefix', required=True, help='Prefix for output files')
+parser = argparse.ArgumentParser(description='Extract mRNA IDs from GFF3 based on exact gene match', add_help=False)
+parser.add_argument('-h', '--help', action='help', help='Print help information')
+parser.add_argument('-i', '--input', required=True, metavar='FILE', help='Input GFF3 file')
+parser.add_argument('-s', '--search', required=True, metavar='STRING', help='Exact search term for gene name')
+parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Prefix for output files')
 args = parser.parse_args()
 
 # Create output directory
@@ -31,24 +32,26 @@ with open(args.input, 'r') as f:
             continue
         
         fields = line.strip().split('\t')
-        if len(fields) >= 9 and fields[2] == 'mRNA':
-            # Extract gene value from attributes
-            if 'gene=' in fields[8]:
-                gene_match = re.search(r'gene=([^;]+)', fields[8])
-                if gene_match:
-                    gene_value = gene_match.group(1)
+        if len(fields) < 9 or fields[2] != 'mRNA':
+            continue
+        
+        gene_match = re.search(r'gene=([^;]+)', fields[8])
+        if not gene_match:
+            continue
+        
+        gene_value = gene_match.group(1)
+        search_lower = args.search.lower()
+        gene_lower = gene_value.lower()
+
+        if gene_lower == search_lower:
+            id_part = fields[8].split('ID=')[1].split(';')[0]
+            clean_id = id_part.replace('rna-', '')
+            mrna_ids.append(clean_id)
+            descriptions.append(line.strip())
                     
-                    # Exact match check
-                    if gene_value.lower() == args.search.lower():
-                        # Extract ID and clean rna- prefix
-                        id_part = fields[8].split('ID=')[1].split(';')[0]
-                        clean_id = id_part.replace('rna-', '')
-                        mrna_ids.append(clean_id)
-                        descriptions.append(line.strip())
-                    
-                    # Partial match check (for suggestions)
-                    elif args.search.lower() in gene_value.lower():
-                        partial_matches.add(gene_value)
+        # Partial match check
+        elif search_lower in gene_lower:
+            partial_matches.add(gene_value)
 
 # Check results
 if mrna_ids:

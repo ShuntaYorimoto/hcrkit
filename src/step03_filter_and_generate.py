@@ -9,17 +9,19 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-parser = argparse.ArgumentParser(description='Filter and generate HCR probe pairs')
-parser.add_argument('-i','--input', required=True, help='Input FASTA file')
-parser.add_argument('--blast_results', required=True, help='BLAST results TSV file')
-parser.add_argument('--probe_fasta', required=True, help='Probe candidates FASTA file')
-parser.add_argument('-p', '--prefix', required=True, help='Prefix for output files')
-parser.add_argument('--initiator_id', required=True, help='HCR initiator ID')
-parser.add_argument('--target_ids', help='On-target mRNA ID list file')
-parser.add_argument('--initiator_custom', help='Custom initiators CSV file')
-parser.add_argument('--min_gc', type=float, default=45, help='Min GC percentage (default: 45)')
-parser.add_argument('--max_gc', type=float, default=55, help='Max GC percentage (default: 55)')
-parser.add_argument('-o', '--outdir', required=True, help='Output directory')
+parser = argparse.ArgumentParser(description='Filter and generate HCR probe pairs', add_help=False)
+parser.add_argument('-h', '--help', action='help', help='Print help information')
+parser.add_argument('-i','--input', required=True, metavar='FILE', help='Input FASTA file')
+parser.add_argument('--blast_results', required=True, metavar='FILE', help='BLAST results TSV file')
+parser.add_argument('--probe_fasta', required=True, metavar='FILE', help='Probe candidates FASTA file')
+parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Prefix for output files')
+parser.add_argument('--initiator_id', required=True, metavar='ID', 
+                    help='HCR initiator ID. Predefined: S23, S41, S45, S72, S73, A161. Custom IDs available with --initiator_custom')
+parser.add_argument('--initiator_custom', metavar='FILE', help='Custom initiators CSV file')
+parser.add_argument('--target_ids', metavar='FILE', help='On-target mRNA ID list file')
+parser.add_argument('--min_gc', type=float, default=45, metavar='FLOAT', help='Min GC percentage (default: 45)')
+parser.add_argument('--max_gc', type=float, default=55, metavar='FLOAT', help='Max GC percentage (default: 55)')
+parser.add_argument('-o', '--outdir', required=True, metavar='STRING', help='Output directory')
 args = parser.parse_args()
 
 # Predefined HCR initiator sequences
@@ -44,21 +46,26 @@ def load_target_ids(target_ids_file, input_fasta_file):
             target_ids.add(clean_id)
         return target_ids
 
+def load_probe_sequences(probe_fasta_file):
+    """Load probe sequences from FASTA file"""
+    probe_sequences = {}
+    for record in SeqIO.parse(probe_fasta_file, 'fasta'):
+        probe_sequences[record.id] = str(record.seq)
+    return probe_sequences
+
 def filter_by_blast_results(blast_file, target_ids):
     """Filter probes based on BLAST results and calculate off-target coverage"""
-    probe_coverage = {}
+    # Initialize all probes as valid
+    probe_coverage = {
+        probe_id: {'max_offtarget': 0, 'valid': True}
+        for probe_id in probe_sequences.keys()
+    }
     
     with open(blast_file, 'r') as f:
         for line in f:
             fields = line.strip().split('\t')
-            
-            query_id = fields[0]
-            subject_id = fields[1]
-            length = int(fields[3])
+            query_id, subject_id, length = fields[0], fields[1], int(fields[3])
             coverage = length / 52
-            
-            if query_id not in probe_coverage:
-                probe_coverage[query_id] = {'max_offtarget': 0, 'valid': True}
             
             # Check if off-target hit
             is_ontarget = any(target_id in subject_id for target_id in target_ids)
@@ -71,43 +78,25 @@ def filter_by_blast_results(blast_file, target_ids):
     
     return probe_coverage
 
-def load_probe_sequences(probe_fasta_file):
-    """Load probe sequences from FASTA file"""
-    probe_sequences = {}
-    for record in SeqIO.parse(probe_fasta_file, 'fasta'):
-        probe_sequences[record.id] = str(record.seq)
-    return probe_sequences
-
-def select_non_overlapping_probes(valid_probes):
+def filter_overlapping_probes(valid_probes):
     """Select non-overlapping probes using greedy algorithm"""
     probe_list = []
     for probe_id in valid_probes:
         parts = probe_id.split('_')
-        start = int(parts[-2]) - 1
-        end = int(parts[-1]) - 1
-        probe_list.append({'id': probe_id, 'start': start - 1, 'end': end})
+        start = int(parts[-2])
+        end = int(parts[-1])
+        probe_list.append((start, end, probe_id))
     
-    probe_list.sort(key=lambda x: x['start'])
-    
+    probe_list.sort()
     selected_probes = []
-    last_end = -1
-    for probe in probe_list:
-        if probe['start'] > last_end:
-            selected_probes.append(probe['id'])
-            last_end = probe['end']
+    last_end = 0
+
+    for start, end, probe_id in probe_list:
+        if start > last_end:
+            selected_probes.append(probe_id)
+            last_end = end
     
     return selected_probes
-
-def remove_duplicate_sequences(selected_probes, probe_sequences):
-    """Remove probes with duplicate sequences"""
-    seen_sequences = set()
-    final_probes = []
-    for probe_id in selected_probes:
-        sequence = probe_sequences[probe_id]
-        if sequence not in seen_sequences:
-            seen_sequences.add(sequence)
-            final_probes.append(probe_id)
-    return final_probes
 
 def create_probe_pairs_and_summary(final_probes, probe_sequences, probe_coverage, 
                                  initiator_seq, prefix, initiator_id):
@@ -153,21 +142,16 @@ if args.initiator_id not in initiator_dict:
 initiator_seq = initiator_dict[args.initiator_id]
 print(f"Selected initiator: {args.initiator_id} ({initiator_seq})")
 
-# Execute pipeline steps
-target_ids = load_target_ids(args.target_ids, args.input)
-probe_coverage = filter_by_blast_results(args.blast_results, target_ids)
-probe_sequences = load_probe_sequences(args.probe_fasta)
-
 # Filter valid probes
+target_ids = load_target_ids(args.target_ids, args.input)
+probe_sequences = load_probe_sequences(args.probe_fasta)
+probe_coverage = filter_by_blast_results(args.blast_results, target_ids)
 valid_probes = [probe_id for probe_id, data in probe_coverage.items() if data['valid']]
 print(f"Valid probes after BLAST filtering: {len(valid_probes)}")
 
-# Select and process probes
-selected_probes = select_non_overlapping_probes(valid_probes)
-print(f"Non-overlapping probes selected: {len(selected_probes)}")
-
-final_probes = remove_duplicate_sequences(selected_probes, probe_sequences)
-print(f"Final unique probes: {len(final_probes)}")
+# filter overlapped probes
+final_probes = filter_overlapping_probes(valid_probes)
+print(f"Final non-overlapping probes: {len(final_probes)}")
 
 probe_pairs, summary_data = create_probe_pairs_and_summary(
     final_probes, probe_sequences, probe_coverage, initiator_seq, args.prefix, args.initiator_id
@@ -177,7 +161,7 @@ probe_pairs, summary_data = create_probe_pairs_and_summary(
 outdir = args.outdir
 gc_suffix = f"gc{int(args.min_gc)}-{int(args.max_gc)}"
 csv_out = os.path.join(outdir, f"{args.prefix}_{args.initiator_id}_probe_pairs_{gc_suffix}.csv")
-probe_pairs_df = pd.DataFrame(probe_pairs, columns=['Probe_Name', 'Sequence'])
+probe_pairs_df = pd.DataFrame(probe_pairs, columns=['Oligoname', 'Sequence'])
 probe_pairs_df.to_csv(csv_out, index=False)
 
 summary_out = os.path.join(outdir, f"{args.prefix}_{args.initiator_id}_probe_summary_{gc_suffix}.txt")

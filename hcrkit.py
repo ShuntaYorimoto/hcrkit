@@ -3,6 +3,9 @@
 HCR Probe Design Pipeline
 """
 
+# Version information
+__version__ = "1.0.0"
+
 import subprocess
 import argparse
 import os
@@ -17,17 +20,21 @@ def run_step(step_name, cmd):
         print(f"Error in {step_name}: {e}")
         exit(1)
 
-parser = argparse.ArgumentParser(description='HCR Probe Design Pipeline')
-parser.add_argument('-i', '--input', required=True, help='Input FASTA file')
-parser.add_argument('-d', '--database', required=True, help='BLAST database or FASTA file')
-parser.add_argument('-p', '--prefix', required=True, help='Prefix for output files')
-parser.add_argument('--initiator_id', required=True, help='HCR initiator ID')
-parser.add_argument('--initiator_custom', help='Custom initiators CSV file')
-parser.add_argument('--target_ids', help='On-target mRNA ID list file')
-parser.add_argument('--make_db', action='store_true', help='Create BLAST database')
-parser.add_argument('--min_gc', type=float, default=45, help='Min GC percentage')
-parser.add_argument('--max_gc', type=float, default=55, help='Max GC percentage')
-parser.add_argument('-t', '--threads', type=int, default=1, help='CPU threads for BLAST')
+parser = argparse.ArgumentParser(description='HCR Probe Design Pipeline', add_help=False)
+parser.add_argument('-h', '--help', action='help', help='Print help information')
+parser.add_argument('-i', '--input', required=True, metavar='FILE', help='Input FASTA file')
+parser.add_argument('-d', '--database', required=True, metavar='FILE', help='BLAST database or FASTA file')
+parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Prefix for output files')
+parser.add_argument('--initiator_id', required=True, metavar='ID', 
+                    help='HCR initiator ID. Predefined: S23, S41, S45, S72, S73, A161. Custom IDs available with --initiator_custom')
+parser.add_argument('--initiator_custom', metavar='FILE', help='Custom initiators CSV file')
+parser.add_argument('--target_ids', metavar='FILE', help='On-target mRNA ID list file')
+parser.add_argument('--make_db', metavar='STRING', help='Create BLAST database with specified name')
+parser.add_argument('--min_gc', type=float, default=45, metavar='FLOAT', help='Min GC percentage (default: 45)')
+parser.add_argument('--max_gc', type=float, default=55, metavar='FLOAT', help='Max GC percentage (default: 55)')
+parser.add_argument('-t', '--threads', type=int, default=1, metavar='INT', help='CPU threads for BLAST')
+parser.add_argument('-v', '--version', action='version', version=f'hcrkit {__version__}', 
+                    help='Print version information')
 
 args = parser.parse_args()
 
@@ -46,7 +53,8 @@ cmd1 = ['step01_filter_gc_content.py',
 run_step("Step 1: GC Content Filtering", cmd1)
 
 # Step 2: BLAST search
-probe_fasta = os.path.join(outdir, f"{args.prefix}_probe_candidates_{gc_suffix}.fasta")
+temp_dir = os.path.join(outdir, 'temp')
+probe_fasta = os.path.join(temp_dir, f"{args.prefix}_probe_candidates_{gc_suffix}.fasta")
 cmd2 = ['step02_blast_search.py',
         '--probe_fasta', probe_fasta, 
         '-d', args.database, 
@@ -55,11 +63,11 @@ cmd2 = ['step02_blast_search.py',
         '--min_gc', str(args.min_gc), 
         '--max_gc', str(args.max_gc), 
         '-o', outdir]
-if args.make_db: cmd2.append('--make_db')
+if args.make_db: cmd2.extend(['--make_db', args.make_db])
 run_step("Step 2: BLAST Search", cmd2)
 
 # Step 3: Filter and generate probes
-blast_results = os.path.join(outdir, f"{args.prefix}_blast_results_{gc_suffix}.tsv")
+blast_results = os.path.join(temp_dir, f"{args.prefix}_blast_results_{gc_suffix}.tsv")
 cmd3 = ['step03_filter_and_generate.py',
         '-i', args.input,
         '--blast_results', blast_results, 

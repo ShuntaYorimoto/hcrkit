@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="hcrkit",
-    version="1.0",
+    version="1.0.0",
     description="Automated pipeline for HCR (Hybridization Chain Reaction) probe design with customizable parameters",
     author="Shunta Yorimoto",
     url="https://github.com/ShuntaYorimoto/hcrkit",
