@@ -47,11 +47,11 @@ with open(outfile, 'w') as out_f:
         sequence = str(record.seq).upper()
         seq_len = len(sequence)
         
-        # Generate sliding window probes (52bp)
+        # Generate sliding window probes (52 nt)
         for i in range(seq_len - 51):
             probe_seq = sequence[i:i + 52]
             
-            # Split into P1 (first 25bp) and P2 (last 25bp, skip 2bp spacer)
+            # Split into P1 (first 25 nt) and P2 (last 25 nt, skip 2 nt spacer)
             p1_seq, p2_seq = probe_seq[:25], probe_seq[27:]
             total_count += 1
             
