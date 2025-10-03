@@ -18,6 +18,8 @@ parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Pre
 parser.add_argument('--initiator_id', required=True, metavar='ID', 
                     help='HCR initiator ID. Predefined: S23, S41, S45, S72, S73, A161. Custom IDs available with --initiator_custom')
 parser.add_argument('--initiator_custom', metavar='FILE', help='Custom initiators CSV file')
+parser.add_argument('--initiator_split', type=int, default=9, 
+                    help='Position to split initiator sequence between P1 and P2 (default: 9)')
 parser.add_argument('--target_ids', metavar='FILE', help='On-target mRNA ID list file')
 parser.add_argument('--min_gc', type=float, default=45, metavar='FLOAT', help='Min GC percentage (default: 45)')
 parser.add_argument('--max_gc', type=float, default=55, metavar='FLOAT', help='Max GC percentage (default: 55)')
@@ -99,10 +101,10 @@ def filter_overlapping_probes(valid_probes):
     return selected_probes
 
 def create_probe_pairs_and_summary(final_probes, probe_sequences, probe_coverage, 
-                                 initiator_seq, prefix, initiator_id):
+                                 initiator_seq, prefix, initiator_id, initiator_split):
     """Create probe pairs and summary data"""
-    p1_init = initiator_seq[:9] + "aa"
-    p2_init = "aa" + initiator_seq[9:]
+    p1_init = initiator_seq[:initiator_split] + "aa"
+    p2_init = "aa" + initiator_seq[initiator_split:]
     probe_pairs = []
     summary_data = []
     
@@ -142,6 +144,11 @@ if args.initiator_id not in initiator_dict:
 initiator_seq = initiator_dict[args.initiator_id]
 print(f"Selected initiator: {args.initiator_id} ({initiator_seq})")
 
+# Validate initiator split position
+if args.initiator_split >= len(initiator_seq):
+    print(f"Error: Initiator split position ({args.initiator_split}) must be less than initiator length ({len(initiator_seq)})")
+    exit(1)
+
 # Filter valid probes
 target_ids = load_target_ids(args.target_ids, args.input)
 probe_sequences = load_probe_sequences(args.probe_fasta)
@@ -154,7 +161,8 @@ final_probes = filter_overlapping_probes(valid_probes)
 print(f"Final non-overlapping probes: {len(final_probes)}")
 
 probe_pairs, summary_data = create_probe_pairs_and_summary(
-    final_probes, probe_sequences, probe_coverage, initiator_seq, args.prefix, args.initiator_id
+    final_probes, probe_sequences, probe_coverage, initiator_seq, 
+    args.prefix, args.initiator_id, args.initiator_split
 )
 
 # Output files
