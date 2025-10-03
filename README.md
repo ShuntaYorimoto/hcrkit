@@ -16,16 +16,16 @@ Automated pipeline for HCR (Hybridization Chain Reaction) probe design with cust
 - [Citation](#citation)
 
 ## Overview
-**What is isHCR (_in situ_ Hybridization Chain Reaction)?**
+**What is isHCR (_in situ_ Hybridization Chain Reaction)?** <br>
 isHCR is a powerful _in situ_ hybridization technique that allows visualization of RNA molecules in tissues with high sensitivity and specificity. Unlike traditional methods, HCR uses a cascade amplification system where probe binding triggers a chain reaction of DNA hybridization, dramatically enhancing signal strength.
 
-**How does hcrkit work?**
+**How does hcrkit work?** <br>
 hcrkit automates the complex process of designing isHCR probe pairs by:
 
 1. **Isoform detection**: Extracting isoform IDs from GFF3 annotations for comprehensive on-target identification
 2. **Probe candidate generation**: Scanning your target sequence to identify potential 52-nucleotide probe regions
 3. **Quality filtering**: Selecting probes based on GC content (45-55% recommended) and filtering duplicated sequences
-4. **Specificity screening**: Using BLAST to eliminate probes that might bind to off-target transcripts (>50% similarity)
+4. **Specificity screening**: Using BLAST (-task blastn-short -evalue 1.0e-2) to eliminate probes that might bind to off-target transcripts (>50% coverage)
 5. **Optimal selection**: Choosing non-overlapping probes for maximum coverage
 6. **Split-probe generation**: Creating reverse-complemented probe pairs (P1/P2) with initiator sequences
 
@@ -51,7 +51,7 @@ conda env create -f environment.yml
 conda activate hcrkit
 ```
 
-3. Verify installation:
+3. Verify installation: <br>
 Installation suceeded when the help guidance is shown for all commands.
 ```bash
 hcrkit.py --help
@@ -78,7 +78,7 @@ gunzip *.gz
 
 ## Usage
 ### Preparation (Optional)
-**Prepare on-target isoform IDs list**
+#### Prepare on-target isoform IDs list
 If your gene has multiple isoforms, create a list of transcript IDs that should be considered as valid targets (not off-targets). The `extract_target_ids.py` script helps extract all isoforms of a specific gene from NCBI GFF3 files.
 
 ```bash
@@ -96,7 +96,7 @@ XM_016802088.2
 XM_003242475.4
 ```
 
-**Automatic on-target detection**
+#### Automatic on-target detection
 When `--target_ids` is not specified, hcrkit automatically uses the input FASTA sequence ID as on-target reference. This is suitable for:
 - Single-isoform gene
 - Pre-selected isoform sequences with non-redundant databases (e.g., longest isoform representatives)
@@ -115,10 +115,6 @@ hcrkit.py -i ApVas1.fasta -d Apis_blastdb/Apis -p ApVas1 --initiator_id S73 -t 4
 # With target IDs: Input a list of transcript IDs for multi-isogorm genes
 hcrkit.py -i ApNos1.fasta -d Apis_blastdb/Apis -p ApNos1 --initiator_id A161 --target_ids ApNos1_out/ApNos1_target_ids.txt -t 4
 ```
-
-BLAST parameters used internally:
-- Task: blastn-short (optimized for short sequences)
-- E-value: 1.0e-2
 
 ### Parameters
 **Required Parameters**
@@ -176,7 +172,7 @@ B3,GTCCCTGCCTCTATATCT
 ### Output Files
 hcrkit creates a structured output directory with the following files:
 
-**Main Output Files**
+#### Main Output Files
 `{prefix}_out/{prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv`
 - Ready-to-order probe sequences in CSV format (eurofins)
 - Example: `ApNos1_out/ApNos1_A161_probe_pairs_gc45-55.csv`
@@ -202,7 +198,7 @@ ApNos1_A161_s363  GGTACGCGAaaAACTCGGCCAGTGTGTAGTAGTTGG  TGTTGCATGCGGTTCATGCGCAAC
 - Probes with >50% coverage are automatically removed
 - 0%: Highly specific probes (recommended)
 
-**Intermediate Files (in temp/ directory)**
+#### Intermediate Files (in temp/ directory)**
 `{prefix}_out/temp/{prefix}_probe_candidates_gc{min}-{max}.fasta`
 - All potential probe sequences before specificity filtering
 - Example: `ApNos1_out/temp/ApNos1_probe_candidates_gc45-55.fasta`
