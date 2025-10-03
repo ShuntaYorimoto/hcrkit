@@ -16,10 +16,10 @@ Automated pipeline for HCR (Hybridization Chain Reaction) probe design with cust
 - [Citation](#citation)
 
 ## Overview
-**What is isHCR (_in situ_ Hybridization Chain Reaction)?** <br>
+### What is isHCR (_in situ_ Hybridization Chain Reaction)?
 isHCR is a powerful _in situ_ hybridization technique that allows visualization of RNA molecules in tissues with high sensitivity and specificity. Unlike traditional methods, HCR uses a cascade amplification system where probe binding triggers a chain reaction of DNA hybridization, dramatically enhancing signal strength.
 
-**How does hcrkit work?** <br>
+### How does hcrkit work?
 hcrkit automates the complex process of designing isHCR probe pairs by:
 
 1. **Isoform detection**: Extracting isoform IDs from GFF3 annotations for comprehensive on-target identification
@@ -117,7 +117,7 @@ hcrkit.py -i ApNos1.fasta -d Apis_blastdb/Apis -p ApNos1 --initiator_id A161 --t
 ```
 
 ### Parameters
-**Required Parameters**
+#### Required Parameters
 `-i, --input FILE`: Input transcript FASTA file containing your target sequence<br>
 
 Example:  `ApNos1.fasta`
@@ -139,7 +139,7 @@ TGAGTGGCCGTAGCAGATTCGCGTTCGGCAGCCAGACCCAGGCGCCCCAGTACCAGAACCGATGCGCTCTGTGCTTGACC
 - Predefined options: S23, S41, S45, S72, S73, A161 (Nepagene sequences)
 - Input different initiator IDs for custom initiators
 
-**Optional Parameters**
+#### Optional Parameters
 
 `--target_ids FILE`: File listing transcript IDs that should be considered as valid targets
 - Prevents isoforms of the same gene from being flagged as off-targets
@@ -198,7 +198,7 @@ ApNos1_A161_s363  GGTACGCGAaaAACTCGGCCAGTGTGTAGTAGTTGG  TGTTGCATGCGGTTCATGCGCAAC
 - Probes with >50% coverage are automatically removed
 - 0%: Highly specific probes (recommended)
 
-#### Intermediate Files (in temp/ directory)**
+#### Intermediate Files (in temp/ directory)
 `{prefix}_out/temp/{prefix}_probe_candidates_gc{min}-{max}.fasta`
 - All potential probe sequences before specificity filtering
 - Example: `ApNos1_out/temp/ApNos1_probe_candidates_gc45-55.fasta`
