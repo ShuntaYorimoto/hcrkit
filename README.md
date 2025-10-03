@@ -62,6 +62,9 @@ blastn -help
 ### Download transcript and gff files from NCBI (Optional)
 For comprehensive specificity screening, download the complete transcriptome of your organism:
 
+> [!Note]
+> New to NCBI downloads? See our [NCBI Download Guide](docs/ncbi_download_guide.md) for step-by-step instructions with screenshots.
+
 1. Go to NCBI Genome database and search for your organism
 2. Download `GCF_*_genomic.gff.gz` and `GCF_*_rna.fna.gz` files from ftp server
 3. Decompress downloaded files
