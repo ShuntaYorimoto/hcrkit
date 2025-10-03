@@ -28,6 +28,8 @@ parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Pre
 parser.add_argument('--initiator_id', required=True, metavar='ID', 
                     help='HCR initiator ID. Predefined: S23, S41, S45, S72, S73, A161. Custom IDs available with --initiator_custom')
 parser.add_argument('--initiator_custom', metavar='FILE', help='Custom initiators CSV file')
+parser.add_argument('--initiator_split', type=int, default=9, 
+                    help='Position to split initiator sequence between P1 and P2 (default: 9)')
 parser.add_argument('--target_ids', metavar='FILE', help='On-target mRNA ID list file')
 parser.add_argument('--make_db', metavar='STRING', help='Create BLAST database with specified name')
 parser.add_argument('--min_gc', type=float, default=45, metavar='FLOAT', help='Min GC percentage (default: 45)')
@@ -79,6 +81,7 @@ cmd3 = ['step03_filter_and_generate.py',
         '-o', outdir]
 if args.target_ids: cmd3.extend(['--target_ids', args.target_ids])
 if args.initiator_custom: cmd3.extend(['--initiator_custom', args.initiator_custom])
+if args.initiator_split: cmd3.extend(['--initiator_split', str(args.initiator_split)])
 run_step("Step 3: Filter and Generate Probes", cmd3)
 
 print("\nhcrkit completed!")
