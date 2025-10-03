@@ -1,160 +1,248 @@
 # hcrkit
-Automated pipeline for isHCR (_in situ_ Hybridization Chain Reaction) probe design with customizable parameters
+Automated pipeline for HCR (Hybridization Chain Reaction) probe design with customizable parameters
 
-## Features
+## Table of Contents
+- [Overview](#overview)
+- [Installation](#installation)
+  - [Dependencies](#dependencies)
+  - [Setup](#setup)
+  - [Download transcript and gff files from NCBI (Optional)](#download-transcript-and-gff-files-from-ncbi-optional)
+- [Usage](#usage)
+  - [Preparation (Optional)](#preparation-optional)
+  - [Basic Usage](#basic-usage)
+  - [Parameters](#parameters)
+  - [Output Files](#output-files)
+- [Tips](#tips)
+- [Citation](#citation)
 
-- **Automated pipeline** from sequence input to final probe pairs
-- **Flexible GC content filtering** with customizable range (default 45-55%)
-- **BLAST-based specificity screening** to minimize off-target hybridization
-- **Multiple initiator support** (predefined Nepagene sequences + custom CSV)
-- **Isoform detection** from GFF3 annotations for comprehensive on-target identification
+## Overview
+**What is isHCR (_in situ_ Hybridization Chain Reaction)?**
+isHCR is a powerful _in situ_ hybridization technique that allows visualization of RNA molecules in tissues with high sensitivity and specificity. Unlike traditional methods, HCR uses a cascade amplification system where probe binding triggers a chain reaction of DNA hybridization, dramatically enhancing signal strength.
+
+**How does hcrkit work?**
+hcrkit automates the complex process of designing isHCR probe pairs by:
+
+1. **Isoform detection**: Extracting isoform IDs from GFF3 annotations for comprehensive on-target identification
+2. **Probe candidate generation**: Scanning your target sequence to identify potential 52-nucleotide probe regions
+3. **Quality filtering**: Selecting probes based on GC content (45-55% recommended) and filtering duplicated sequences
+4. **Specificity screening**: Using BLAST to eliminate probes that might bind to off-target transcripts (>50% similarity)
+5. **Optimal selection**: Choosing non-overlapping probes for maximum coverage
+6. **Split-probe generation**: Creating reverse-complemented probe pairs (P1/P2) with initiator sequences
 
 ## Installation
 
-### Requirements
+### Dependencies
 - Python 3.7+
 - BLAST+
 - Python packages: biopython, pandas
 
 **Developed and tested with:**
-- Python 3.13.3, BLAST+ 2.16.0, BioPython 1.85, pandas 2.3.2
+Python 3.13.3, BLAST+ 2.16.0, BioPython 1.85, pandas 2.3.2
 
 ### Setup
 1. Clone the repository:
-```
+```bash
 git clone https://github.com/ShuntaYorimoto/hcrkit.git
 cd hcrkit
 ```
 2. Create and activate conda environment:
-```
+```bash
 conda env create -f environment.yml
 conda activate hcrkit
 ```
 
 3. Verify installation:
-```
-hcrkit.py -h
-extract_target_ids.py -h
+Installation suceeded when the help guidance is shown for all commands.
+```bash
+hcrkit.py --help
+extract_target_ids.py --help
 blastn -help
 ```
 
+### Download transcript and gff files from NCBI (Optional)
+For comprehensive specificity screening, download the complete transcriptome of your organism:
+
+1. Go to NCBI Genome database and search for your organism
+2. Download `GCF_*_genomic.gff.gz` and `GCF_*_rna.fna.gz` files from ftp server
+3. Decompress downloaded files
+
+Example:
+```bash
+# Download using curl
+curl -O https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/005/508/785/GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2/GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_genomic.gff.gz
+curl -O https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/005/508/785/GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2/GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_rna.fna.gz
+
+# Decompress files
+gunzip *.gz
+```
+
 ## Usage
-### Quick Usage
-```
-hcrkit.py -i gene.fasta -d transcripts.fasta -p MyGene --initiator_id S73 --make_db
+### Preparation (Optional)
+**Prepare on-target isoform IDs list**
+If your gene has multiple isoforms, create a list of transcript IDs that should be considered as valid targets (not off-targets). The `extract_target_ids.py` script helps extract all isoforms of a specific gene from NCBI GFF3 files.
+
+```bash
+# Syntax
+extract_target_ids.py -i FILE -s STRING -p STRING
+
+# Example: Extract all isoforms of LOC100216490 (nanos-like protein) in pea aphid
+extract_target_ids.py -i GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_genomic.gff -s LOC100216490 -p ApNos1
 ```
 
-### Command Syntax
+This creates `ApNos1_target_ids.txt` containing:
+```
+XM_016802089.2
+XM_016802088.2
+XM_003242475.4
+```
 
+**Automatic on-target detection**
+When `--target_ids` is not specified, hcrkit automatically uses the input FASTA sequence ID as on-target reference. This is suitable for:
+- Single-isoform gene
+- Pre-selected isoform sequences with non-redundant databases (e.g., longest isoform representatives)
+
+### Basic Usage
+```bash
+# Syntax
+hcrkit.py -i FILE -d FILE -p STRING --initiator_id ID [OPTIONS]
+
+# First run: Create BLAST database
+hcrkit.py -i ApDll.fasta -d GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_rna.fna -p ApDll --initiator_id A161 --make_db Apis -t 4
+
+# Subsequent runs: Use existing database
+hcrkit.py -i ApVas1.fasta -d Apis_blastdb/Apis -p ApVas1 --initiator_id S73 -t 4
+
+# With target IDs: Input a list of transcript IDs for multi-isogorm genes
+hcrkit.py -i ApNos1.fasta -d Apis_blastdb/Apis -p ApNos1 --initiator_id A161 --target_ids ApNos1_out/ApNos1_target_ids.txt -t 4
 ```
-hcrkit.py -i INPUT_FASTA -d DATABASE -p PREFIX --initiator_id INITIATOR_ID [OPTIONS]
-```
+
+BLAST parameters used internally:
+- Task: blastn-short (optimized for short sequences)
+- E-value: 1.0e-2
 
 ### Parameters
-Use `hcrkit.py -h` or `hcrkit.py --help` for full parameter list.
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `-i, --input` | Target gene FASTA file | Required |
-| `-d, --database` | Transcriptome FASTA or BLAST database | Required |
-| `-p, --prefix` | Output file prefix | Required |
-| `--initiator_id` | HCR initiator sequence ID | Required |
-| `--min_gc` | Minimum GC percentage | 45 |
-| `--max_gc` | Maximum GC percentage | 55 |
-| `-t, --threads` |	CPU threads for BLAST |	1 |
-| `--make_db` |	Create BLAST database from FASTA | Flag |
-| `--target_ids` | On-target sequence ID list	| Optional |
-| `--initiator_custom` | Custom initiator CSV file | Optional |
+**Required Parameters**
+`-i, --input FILE`: Input transcript FASTA file containing your target sequence<br>
 
-### Advanced Usage
-1. Extract Target IDs from GFF3  
-For genes with multiple isoforms, first extract target sequence IDs by gene name:
-
-```
-# Extract all DDX4 isoforms
-extract_target_ids.py -i human_annotation.gff3 -s DDX4 -p HsDDX4
-
-# Use extracted IDs in probe design
-hcrkit.py -i HsDDX4.fasta -d human_transcriptome.fasta -p HsDDX4 \
-  --initiator_id A161 --target_ids HsDDX4_out/HsDDX4_target_ids.txt
+Example:  `ApNos1.fasta`
+```fasta
+>XM_003242475.4 PREDICTED: Acyrthosiphon pisum nanos-like protein (LOC100216490), transcript variant X3, mRNA
+AAAAAAATGTATGTTTTGAATTTGAAGTTTAAATTTAAGTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAA
+TGAGTGGCCGTAGCAGATTCGCGTTCGGCAGCCAGACCCAGGCGCCCCAGTACCAGAACCGATGCGCTCTGTGCTTGACC
+...
 ```
 
-2. Custom GC Content Ranges  
-Design probes with different GC stringency:
+`-d, --database FILE`: BLAST database or FASTA file
+- Use your organism's complete transcriptome
+- Can be a pre-built BLAST database or FASTA file
 
-```
-# Relaxed GC range (more probe candidates)
-hcrkit.py -i gene.fasta -d db.fasta -p test --initiator_id S23 \
-  --min_gc 40 --max_gc 60
-```
+`-p, --prefix STRING`: Prefix for output files and directories
+- Organizes outputs in `{prefix}_out/` directory to prevent file clutter
 
-3. Custom Initiator Sequences  
-Create a CSV file with custom initiators (no header) (_Example sequences from Choi et al., 2018_):  
-```
+`--initiator_id ID`: HCR initiator ID
+- Predefined options: S23, S41, S45, S72, S73, A161 (Nepagene sequences)
+- Input different initiator IDs for custom initiators
+
+**Optional Parameters**
+
+`--target_ids FILE`: File listing transcript IDs that should be considered as valid targets
+- Prevents isoforms of the same gene from being flagged as off-targets
+- Essential for genes with multiple splice variants
+
+`--make_db STRING`: Create BLAST database with specified name
+- Database files are saved in `{STRING}_blastdb/` directory for reuse
+
+`--min_gc`, `--max_gc`: GC content range (default: 45-55%)
+- The GC content should be with 40–60% (45-55% is recommended)
+- Default GC content range (45-55%) is the most strict condition
+
+`--initiator_custom`: Custom initiators CSV file
+- Example: `custom_initiators.csv`
+```csv
 B1,GAGGAGGGCAGCAAACGG
 B2,CCTCGTAAATCCTCATCA
 B3,GTCCCTGCCTCTATATCT
 ```
 
+`--initiator_split INT`: Position to split initiator between P1 and P2 (default: 9)
+- For custom initiators
+
+`-t, --threads`: Number of CPU threads for BLAST (default: 1)
+
+`-h, --help`: Print help information
+
+`-v, --version`: Print version information
+
+### Output Files
+hcrkit creates a structured output directory with the following files:
+
+**Main Output Files**
+`{prefix}_out/{prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv`
+- Ready-to-order probe sequences in CSV format (eurofins)
+- Example: `ApNos1_out/ApNos1_A161_probe_pairs_gc45-55.csv`
 ```
-hcrkit.py -i gene.fasta -d db.fasta -p test \
-  --initiator_id B1 --initiator_custom my_initiators.csv
+Oligoname,Sequence
+ApNos1_A161_s38_P1,GGTACGCGAaaAAGGGTCCTCTTGAAAACACCCACT
+ApNos1_A161_s38_P2,GGCCACTCATTGTGATATCTTGGCAaaAGGTAGGTGTAA
+ApNos1_A161_s363_P1,GGTACGCGAaaAACTCGGCCAGTGTGTAGTAGTTGG
+ApNos1_A161_s363_P2,TGTTGCATGCGGTTCATGCGCAACAaaAGGTAGGTGTAA
+...
 ```
 
-## Algorithm and Implementation Details
-### Workflow Overview
-`hcrkit` implements a 3-step automated pipeline:
+`{prefix}_out/{prefix}_{initiator}_probe_summary_gc{min}-{max}.txt`
+- Probe summary with specificity information
+- Example: `ApNos1_out/ApNos1_A161_probe_summary_gc45-55.txt`
+```tsv
+Probe set name    P1                                    P2                                       Max off-target coverage (%)
+ApNos1_A161_s38   GGTACGCGAaaAAGGGTCCTCTTGAAAACACCCACT  GGCCACTCATTGTGATATCTTGGCAaaAGGTAGGTGTAA  0
+ApNos1_A161_s363  GGTACGCGAaaAACTCGGCCAGTGTGTAGTAGTTGG  TGTTGCATGCGGTTCATGCGCAACAaaAGGTAGGTGTAA  0
+...
+```
+- Max off-target coverage: Percentage of probe sequence that matches off-target transcripts.
+- Probes with >50% coverage are automatically removed
+- 0%: Highly specific probes (recommended)
 
-1. GC Content Filtering (`step01_filter_gc_content.py`)
-- Generates 52bp probe candidates using sliding window (1bp step)
-- Filters candidates based on GC content of both P1 (first 25bp) and P2 (last 25bp) regions
-- Default GC range: 45-55% (customizable via --min_gc and --max_gc)
+**Intermediate Files (in temp/ directory)**
+`{prefix}_out/temp/{prefix}_probe_candidates_gc{min}-{max}.fasta`
+- All potential probe sequences before specificity filtering
+- Example: `ApNos1_out/temp/ApNos1_probe_candidates_gc45-55.fasta`
+```
+>XM_003242475.4_probe_38_89
+AGTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAATGAGTGGCC
+>XM_003242475.4_probe_39_90
+GTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAATGAGTGGCCG
+...
+```
 
-2. BLAST-based Specificity Screening (`step02_blast_search.py`)
-- Performs BLASTN search against provided transcriptome database
-- BLAST parameters: -task blastn-short -evalue 1.0e-2 -outfmt 6
-- Optimized for short sequence alignment with relaxed e-value threshold
+`{prefix}_out/temp/{prefix}_blast_results_gc{min}-{max}.tsv`
+- Raw BLASTN results (outfmt 6)
+- Example: `ApNos1_out/temp/ApNos1_blast_results_gc45-55.tsv`
+```
+XM_003242475.4_probe_38_89	XM_003242475.4	100.000	52	0	0	1	52	38	89	1.68e-22	103
+XM_003242475.4_probe_38_89	XM_016802088.2	100.000	21	0	0	32	52	231	251	5.30e-04	42.1
+...
+```
 
-3. Probe Selection and Pair Generation (`step03_filter_and_generate.py`)
-- Filters probes with ≥50% coverage against off-target sequences
-- Selects non-overlapping probes using greedy algorithm
-- Removes duplicate sequences from repetitive regions
-- Generates final HCR probe pairs with specified initiator sequences
+## Tips
+### Appropreate Probe Number
+- **Start with 10 probe pairs** as a baseline for most targets
+- **If no signal is detected**, increase the number of probe pairs
+- **Fewer pairs may be sufficient** for highly expressed genes (signals were detected with only 2 pairs in some cases)
 
-### On-target Sequence Handling
-**Automatic on-target detection:** When `--target_ids` is not specified, `hcrkit` automatically uses the input FASTA sequence ID as on-target references. This is suitable for:
-- Single-isoform gene
-- Pre-selected isoform gene with non-redundant database (e.g., longest isoform representatives)
+### If Few probes are designed
+- Relax GC content requirements:
 
-**Manual on-target specification:** Use `extract_target_ids.py` to identify all isoforms of a target gene from from GFF3 annotations. This is essential when:
-- Working with NCBI annotations where isoforms have unrelated mRNA IDs (e.g., XM_001234567, XM_007654321 for the same gene)
-- Gene name-based isoform discovery is needed to ensure all variants are recognized as on-target
-- Comprehensive isoform coverage is required for accurate specificity filtering
+```bash
+# Default (strict: 45-55%)
+hcrkit.py -i target.fasta -d database -p output --initiator_id A161
 
-### BLAST Specificity Criteria
-- **Coverage threshold:** Probes showing ≥50% alignment coverage to off-target sequences are excluded (≥26bp out of 52bp total length)
-- **On-target hits:** Alignments to sequences specified in --target_ids (or input FASTA ID) are allowed regardless of coverage
-- **E-value:** Uses relaxed threshold (1.0e-2) to detect potential cross-hybridization
+# Relaxed (40-60%)
+hcrkit -i target.fasta -d database -p output --initiator_id A161 --min_gc 40 --max_gc 60
+```
 
-## Output Files
-All outputs are saved in `{prefix}_out/` directory:
-
-| File | Description |
-|------|-------------|
-| `{prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv` | Ready-to-order sequences |
-| `{prefix}_{initiator}_probe_summary_gc{min}-{max}.txt` |	Summary includes max off-target coverage for each probe set |
-| `{prefix}_probe_candidates_gc{min}-{max}.fasta` |	Initial probe candidates |
-| `{prefix}_blast_results_gc{min}-{max}.tsv` |	BLAST search results |
-
-## Predefined Initiators
-
-| ID | Sequence | Source |
-|----|----------|---------|
-| S23 | GGGTGGTCGTCGAAGTCGTAT | Nepagene |
-| S41 | GCTCGACGTTCCTTTGCAACA | Nepagene |
-| S45 | CCTCCACGTTCCATCTAAGCT | Nepagene |
-| S72 | CGGTGGAGTGGCAAGTAGGAT | Nepagene |
-| S73 | CGGTCAGGTGGCTAGTATGGA | Nepagene |
-| A161 | GGTACGCGAAGGTAGGTGTAA | Nepagene |
+- Check the on-target list:
+  - Verify that --target_ids file contains all relevant transcript IDs
+  - Missing isoforms may be incorrectly flagged as off-targets
 
 ## Citation
 Preparing...
