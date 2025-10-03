@@ -176,7 +176,7 @@ hcrkit creates a structured output directory with the following files:
 `{prefix}_out/{prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv`
 - Ready-to-order probe sequences in CSV format (eurofins)
 - Example: `ApNos1_out/ApNos1_A161_probe_pairs_gc45-55.csv`
-```
+```csv
 Oligoname,Sequence
 ApNos1_A161_s38_P1,GGTACGCGAaaAAGGGTCCTCTTGAAAACACCCACT
 ApNos1_A161_s38_P2,GGCCACTCATTGTGATATCTTGGCAaaAGGTAGGTGTAA
@@ -188,7 +188,7 @@ ApNos1_A161_s363_P2,TGTTGCATGCGGTTCATGCGCAACAaaAGGTAGGTGTAA
 `{prefix}_out/{prefix}_{initiator}_probe_summary_gc{min}-{max}.txt`
 - Probe summary with specificity information
 - Example: `ApNos1_out/ApNos1_A161_probe_summary_gc45-55.txt`
-```tsv
+```
 Probe set name    P1                                    P2                                       Max off-target coverage (%)
 ApNos1_A161_s38   GGTACGCGAaaAAGGGTCCTCTTGAAAACACCCACT  GGCCACTCATTGTGATATCTTGGCAaaAGGTAGGTGTAA  0
 ApNos1_A161_s363  GGTACGCGAaaAACTCGGCCAGTGTGTAGTAGTTGG  TGTTGCATGCGGTTCATGCGCAACAaaAGGTAGGTGTAA  0
