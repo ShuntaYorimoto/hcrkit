@@ -204,7 +204,7 @@ hcrkit.py \
 - Required when using `--gff3`
 - Case-insensitive exact match
 
-`--min_gc FLOAT`: Minimum GC percentage (default: 45.0)
+`--min_gc FLOAT`: Minimum GC percentage (default: 45.0)</br>
 `--max_gc FLOAT`: Maximum GC percentage (default: 55.0)
 
 - The GC content can be changed with 40–60% (see [Guidline for probe design](#guidline-for-probe-design) section)
