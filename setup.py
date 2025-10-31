@@ -2,18 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="hcrkit",
-    version="1.0.0",
-    description="Automated pipeline for HCR (Hybridization Chain Reaction) probe design with customizable parameters",
+    version="2.0.0",
+    description="Automated pipeline for HCR (Hybridization Chain Reaction) probe design",
     author="Shunta Yorimoto",
     url="https://github.com/ShuntaYorimoto/hcrkit",
     packages=find_packages(),
-    scripts=[
-        'hcrkit.py', 
-        'extract_target_ids.py',
-        'src/step01_filter_gc_content.py',
-        'src/step02_blast_search.py', 
-        'src/step03_filter_and_generate.py'
-        ],
+    py_modules=['core'],
+    scripts=['hcrkit.py'],
     install_requires=[
         'biopython>=1.78',
         'pandas>=1.3.0',

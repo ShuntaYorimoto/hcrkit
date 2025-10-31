@@ -11,19 +11,16 @@ hcrkit is an automated pipeline for design of *in situ* Hybridization Chain Reac
   - [Download reference files from NCBI](#download-reference-files-from-ncbi)
     - [Procedure for download files via NCBI web page](#procedure-for-download-files-via-ncbi-web-page)
     - [Procedure for download files via CLI](#procedure-for-download-files-via-cli)
-  - [Identification of on-target transctipts IDs (Optional)](#identification-of-on-target-transctipts-ids-optional)
-    - [Parameters](#parameters)
-    - [Example of this step](#example-of-this-step)
+  - [Prepare BLAST database](#prepare-blast-database)
   - [Running hcrkit](#running-hcrkit)
-    - [Parameters](#parameters-1)
-    - [Example of this step with some patterns](#example-of-this-step-with-some-patterns)
+    - [Syntax](#syntax)
+    - [Quick Examples](#quick-examples)
+    - [Parameters](#parameters)
 - [Tips](#tips)
 - [Overview](#overview)
   - [What is isHCR (_in situ_ Hybridization Chain Reaction)?](#what-is-ishcr-in-situ-hybridization-chain-reaction)
-  - [Guidline for design of probes](#guidline-for-design-of-probes)
+  - [Guidline for probe design](#guidline-for-probe-design)
   - [Workflow \& algorithm](#workflow--algorithm)
-    - [`extract_target_ids.py` (Identification of Target Transcript IDs)](#extract_target_idspy-identification-of-target-transcript-ids)
-    - [`hcrkit.py` (automated probe design tool)](#hcrkitpy-automated-probe-design-tool)
 - [Citation](#citation)
 
 ## Installation
@@ -43,7 +40,7 @@ hcrkit is an automated pipeline for design of *in situ* Hybridization Chain Reac
 
 1. Prepare for conda
    
-   hcrkit can be easily set up using conda, so it is recommended preparation of environment for using conda. If you use Windows machine, Windows Subsystem for Linux and Ubuntu are also required.
+   hcrkit can be easily set up using conda, so it is recommended to prepare environment for using conda. If you use a Windows machine, Windows Subsystem for Linux and Ubuntu are also required.
 
 2. Clone the repository
 
@@ -61,11 +58,10 @@ hcrkit is an automated pipeline for design of *in situ* Hybridization Chain Reac
 
 5. Verify installation
    
-   For verify success of installation, run below commands and check whether the help guidance is shown.
+   To verify successful installation, run the command below and check whether the help guidance is shown.
 
    ```bash
-   hcrkit.py --help
-   extract_target_ids.py --help
+   hcrkit.py -h
    blastn -help
    ```
 
@@ -73,7 +69,7 @@ hcrkit is an automated pipeline for design of *in situ* Hybridization Chain Reac
 
 ### Download reference files from NCBI
 
-It is necessary to download a reference RNA sequence file and a gff3-formated annotation file, because hcrkit automatically filters candidate probes that might bind off-target transcripts using BLAST (Details are shown in [Workflow \& algorithm](#workflow--algorithm) section). It is recommended to download files from NCBI to match transcript IDs between a reference RNA sequence file and a gff file.
+It is necessary to download a reference RNA sequence file and a gff3-formated annotation file. `hcrkit` automatically filters candidate probes that might bind off-target transcripts using BLAST (Details are shown in [Workflow \& algorithm](#workflow--algorithm) section). It is recommended to download files from NCBI to match transcript IDs between a reference RNA sequence file and a gff file.
 
 #### Procedure for download files via NCBI web page
 
@@ -81,7 +77,7 @@ It is necessary to download a reference RNA sequence file and a gff3-formated an
 > New to NCBI downloads? See our [NCBI Download Guide](docs/ncbi_download_guide.md) for step-by-step instructions with screenshots.
 
 1. Go to NCBI Genome database and search for your organism
-2. Download `GCF_*_genomic.gff.gz` and `GCF_*_rna.fna.gz` files from ftp server
+2. Download `GCF_*_genomic.gff.gz` and `GCF_*_rna.fna.gz` files from FTP server
 3. Decompress downloaded files
 
 #### Procedure for download files via CLI
@@ -101,50 +97,68 @@ It is necessary to download a reference RNA sequence file and a gff3-formated an
    gunzip *.gz
    ```
 
-### Identification of on-target transctipts IDs (Optional)
-
-Obtain a list of on-target transcripts IDs with `extract_target_ids.py`. hcrkit automatically removes candidate probes that might bind to transcripts not matching the target transcript IDs. Identification of on-target transctipt IDs is necessary, if the gene encoding the target transcript generates different isoforms, or if a transcript ID of target RNA is unknown. Details are shown in [Workflow \& algorithm](#workflow--algorithm) section.
-
-**Syntax**: 
+### Prepare BLAST database
+Before running `hcrkit`, create a BLAST database from the reference RNA sequences:
 
 ```bash
-extract_target_ids.py -i PATH -s STRING -p STRING
+makeblastdb -in transcripts.fasta -dbtype nucl -out database_name
 ```
-#### Parameters
 
-`-i, --input PATH`: Path of gff file<br>
-
-`-s, STRING`: Gene name encoding on-target transicript<br>
-
-`-p, --prefix STRING`: String used as a prefix for output files (* in the output file section)<br>
-
-**Output file**
-
-`*_target_ids.txt`:
-
-- This file is used as argument of `--target_ids` (parameter of `hcrkit.py`).
-- Example:
-  
-  ```
-  XM_016802089.2
-  XM_016802088.2
-  XM_003242475.4
-  ```
-
-#### Example of this step
-
-Extract all isoforms of LOC100216490 (nanos-like protein) in pea aphid.
+Example:
 
 ```bash
-extract_target_ids.py -i GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_genomic.gff -s LOC100216490 -p ApNos1
+makeblastdb -in GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_rna.fna -dbtype nucl -out Apis
 ```
 
 ### Running hcrkit
 
-**Syntax**:
+#### Syntax
 
 ```bash
-hcrkit.py -i PATH -d PATH -p STRING --initiator_id ID [OPTIONS]
+hcrkit.py -i PATH -d PATH -p STR --initiator_id ID [OPTIONS]
+```
+
+#### Quick Examples
+Basic usage (automatic on-target detection)
+```bash
+hcrkit.py \
+  -i ApDll.fasta \
+  -d Apis \
+  -p ApDll \
+  --initiator_id A161
+```
+
+With GFF3 for target ID extraction
+```bash
+hcrkit.py \
+  -i ApNos1.fasta \
+  -d Apis \
+  -p ApNos1 \
+  --initiator_id A161 \
+  --gff3 GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_genomic.gff \
+  --gene_name LOC10021649
+```
+
+With custom GC range and multiple threads
+```bash
+hcrkit.py \
+  -i ApVas1.fasta \
+  -d Apis \
+  -p ApVas1 \
+  --initiator_id S73 \
+  --min_gc 40 \
+  --max_gc 60 \
+  -t 4
+```
+
+With pre-extracted target IDs
+```bash
+hcrkit.py \
+  -i ApNos1.fasta \
+  -d Apis \
+  -p ApNos1 \
+  --initiator_id A161 \
+  --target_ids ApNos1_target_ids.txt
 ```
 
 #### Parameters
@@ -153,8 +167,7 @@ hcrkit.py -i PATH -d PATH -p STRING --initiator_id ID [OPTIONS]
 
 `-i, --input PATH`: Path to FASTA file of the target RNA sequence
 
-- Example:
-
+- Example of FASTA file content:
   ```fasta
   >XM_003242475.4 PREDICTED: Acyrthosiphon pisum nanos-like protein (LOC100216490), transcript variant X3, mRNA
   AAAAAAATGTATGTTTTGAATTTGAAGTTTAAATTTAAGTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAA
@@ -162,35 +175,43 @@ hcrkit.py -i PATH -d PATH -p STRING --initiator_id ID [OPTIONS]
   ...
   ```
 
-`-d, --database PATH`: Path to FASTA file of reference RNAs sequences for BLAST or path to BLAST database
+`-d, --database PATH`: Path to BLAST database
 
-- For running with creation of BLAST database, specify path to the reference RNA sequence (it is also **necessary to specify `--make_db` parameter** for creation of BLAST database).
-- For running with using existing BLAST database, specify path of BLAST database. Although multiple files are maked with different file extention as creation of BLAST database, the pre-built BLAST databases can be specifiedby providing the database name without the extension as the argument of this parameter.
+- Specify the database name without extension (e.g., `Apis`)
+- The database must be created beforehand using `makeblastdb` (see [Prepare BLAST database](#prepare-blast-database))
 
-`-p, --prefix STRING`: String used as a prefix for output files and a directory
+`-p, --prefix STR`: String used as a prefix for output files and a directory
 
 `--initiator_id ID`: The name of fluorescently-labeled hairpin DNA
 
-- The names which can be specified as options are only products lineup of ISHpalette™ Short hairpin amplifier (production of [Nepagene](https://nepagene.jp/en/products/fluorescent-tissue-staining-in-situ-hcr/ishpalette-2)): S23, S41, S45, S72, S73, A161.
-- The other names of products can be used, if you specify `--initiator_custom` parameter.
+- The names which can be specified as options are only products lineup of ISHpalette™ Short hairpin amplifier (production of [Nepagene](https://nepagene.jp/en/products/fluorescent-tissue-staining-in-situ-hcr/ishpalette-2)): S23, S41, S45, S72, S73, A161
+- The other names of products can be used, if you specify `--initiator_custom` parameter
 
 **Optional Parameters**
 
-`--target_ids PATH`: Path to the file of the list of on-target transctipts IDs (The output of `extract_target_ids.py`)
+`--target_ids PATH`: Path to file containing list of on-target transctipts IDs
 
-- When this parameter is omitted, hcrkit extract the transcript ID from the FASTA header of `-i, --input PATH`, taking the string up to (but not including) the first whitespace.
+- When omitted, `hcrkit` extracts the transcript ID from the FASTA header of `-i, --input PATH` file, taking the string up to the first whitespace
 
-`--make_db STRING`: The name for newly creating BLAST database
+`--gff3 PATH`: Path to GFF3 file for automatic target ID extraction
 
-- `{STRING}_blastdb/`
+- Requires `--gene_name` parameter
+- Useful when the target gene has multiple isoforms or when transcript IDs are unknown
+- Mutually exclusive with `--target_ids`
 
-`--min_gc`, `--max_gc`: The percentege of GC fraction of probe binding sites (default: 45-55%)
+`--gene_name STR`: Gene name to search in GFF3 file
 
-- The GC content can be changed with 40–60% (see [Guidline for design of probes](#guidline-for-design-of-probes) section)
+- Required when using `--gff3`
+- Case-insensitive exact match
 
-`--initiator_custom`: Path to CSV file of custom initiator
+`--min_gc FLOAT`: Minimum GC percentage (default: 45.0)
+`--max_gc FLOAT`: Maximum GC percentage (default: 55.0)
 
-- For CSV file of custom initiator, the name of the hairpin DNAs are described in the 1st column and initiator sequences described in the 2nd column.
+- The GC content can be changed with 40–60% (see [Guidline for probe design](#guidline-for-probe-design) section)
+
+`--initiator_custom`: Path to CSV file of custom initiator sequences
+
+- CSV format: initiator_name,sequence (no header)
 - Example:
   
   ```csv
@@ -199,11 +220,12 @@ hcrkit.py -i PATH -d PATH -p STRING --initiator_id ID [OPTIONS]
   B3,GTCCCTGCCTCTATATCT
   ```
 
-`--initiator_split INT`: The split position of initiator (default: 9)
+`--initiator_split INT`: Split position of initiator sequence (default: 9)
 
-- The split of the initiator sequence depends on the hairpin DNA product (When using the ISHpalette™ Short hairpin amplifier, a 20-nt initiator is split into 9 and 12 nt). The initiator sequence in `--initiator_custom` can be split at the nucleotide position you specify.
+- The initiator sequence is split at this position for P1 and P2 probes
+- Default value (9) is suitable for ISHpalette™ Short hairpin amplifiers
 
-`-t, --threads`: The number of CPU threads for BLAST (default: 1)
+`-t, --threads`: Number of CPU threads for BLAST (default: 1)
 
 `-h, --help`: Print help information
 
@@ -211,20 +233,36 @@ hcrkit.py -i PATH -d PATH -p STRING --initiator_id ID [OPTIONS]
 
 **Output Files**
 
-hcrkit outputs following files and directories.
+hcrkit creates the following output structure:
 
 ```
-{prefix}_out
-├─ {prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv
-├─ {prefix}_out/{prefix}_{initiator}_probe_summary_gc{min}-{max}.txt`
-└─ temp
-    ├─ {prefix}_probe_candidates_gc{min}-{max}.fasta
-    └─ {prefix}_blast_results_gc{min}-{max}.tsv
+{prefix}_out/
+├── {prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv
+├── {prefix}_{initiator}_probe_summary_gc{min}-{max}.txt`
+└── temp/
+    ├── {prefix}_region_candidates_gc{min}-{max}.fasta
+    ├── {prefix}_blast_results_gc{min}-{max}.tsv
+    ├── {prefix}_target_ids.txt (if using --gff3)
+    └── {prefix}_target_description.tsv (if using --gff3)
 ```
 
+- `{prefix}`: string specified by `-p` parameter (e.g., if `-p ApNos1`, then `ApNos1_out/`)
+- `{initiator}` = initiator ID (e.g., `A161`, `S73`)
+- `{min}`, `{max}` = GC content range (e.g., `gc45-55`)
+
+Example: Running with `-p ApNos1 --initiator_id A161` creates:
+```
+ApNos1_out/
+├── ApNos1_A161_probe_pairs_gc45-55.csv
+├── ApNos1_A161_probe_summary_gc45-55.txt
+└── temp/
+...
+```
+
+Main output files:</br>
 `{prefix}_{initiator}_probe_pairs_gc{min}-{max}.csv`:
 
-- Probe sequences (This is formatted as order forms for the eurofin genomics).
+- Probe sequences formatted for ordering (e.g., Eurofins Genomics)
 - Example:
   
   ```csv
@@ -238,8 +276,8 @@ hcrkit outputs following files and directories.
 
 `{prefix}_{initiator}_probe_summary_gc{min}-{max}.txt`:
 
-- Summarised information of probes.
-- The values of `Max off-target coverage` columns means percentage of bases that matches off-target transcripts in each probe binding sites.
+- Summary information for each probe set
+- `Max off-target coverage (%)` indicates the maximum percentage of bases matching off-target transcripts
 - Example:
   
   ```
@@ -249,57 +287,54 @@ hcrkit outputs following files and directories.
   ...
   ```
 
-`{prefix}_probe_candidates_gc{min}-{max}.fasta`
+Intermediate files (in `temp` directory):</br>
 
-- All potential probe sequences before specificity filtering.
+`{prefix}_region_candidates_gc{min}-{max}.fasta`:
+
+- All probe region candidates before specificity filtering
 - Example:
 
   ```
-  >XM_003242475.4_probe_38_89
+  >XM_003242475.4_region_38_89
   AGTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAATGAGTGGCC
-  >XM_003242475.4_probe_39_90
+  >XM_003242475.4_region_39_90
   GTGGGTGTTTTCAAGAGGACCCTTATTGCCAAGATATCACAATGAGTGGCCG
   ...
   ```
 
-`{prefix}_blast_results_gc{min}-{max}.tsv`
+`{prefix}_blast_results_gc{min}-{max}.tsv`:
 
-- The raw results of BLAST written in output format 6.
+- Raw BLAST results in tabular output format 6
 - Example:
   
   ```
-  XM_003242475.4_probe_38_89	XM_003242475.4	100.000	52	0	0	1	52	38	89	1.68e-22	103
-  XM_003242475.4_probe_38_89	XM_016802088.2	100.000	21	0	0	32	52	231	251	5.30e-04	42.1
+  XM_003242475.4_region_38_89	XM_003242475.4	100.000	52	0	0	1	52	38	89	1.68e-22	103
+  XM_003242475.4_region_38_89	XM_016802088.2	100.000	21	0	0	32	52	231	251	5.30e-04	42.1
   ...
   ```
 
-#### Example of this step with some patterns
+`{prefix}_target_ids.txt` (when using `--gff3`):
 
-Running hcrkit with creation of BLAST database (the first time).
+- List of on-target transcript IDs extracted from GFF3
+- Example:
+  
+  ```
+  XM_016802089.2
+  XM_016802088.2
+  XM_003242475.4
+  ```
 
-```bash
-hcrkit.py -i ApDll.fasta -d GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_rna.fna -p ApDll --initiator_id A161 --make_db Apis -t 4
-```
+`{prefix}_target_description.tsv` (when using `--gff3`):
 
-Running hcrkit with using existing database.
-
-```bash
-hcrkit.py -i ApVas1.fasta -d Apis_blastdb/Apis -p ApVas1 --initiator_id S73 -t 4
-```
-
-Running hcrkit with target IDs.
-
-```bash
-hcrkit.py -i ApNos1.fasta -d Apis_blastdb/Apis -p ApNos1 --initiator_id A161 --target_ids ApNos1_out/ApNos1_target_ids.txt -t 4
-```
+- Detailed GFF3 entries for extracted target transcripts
 
 ## Tips
 
-The number of probes would affect the RNA detection. Starting the experiment with a 10-probe set might be a good. The larger number of probes may enable detection of low-copy RNAs.<br>
+The number of probes can affect RNA detection. Starting with a 10-probe set is recommended. A larger number of probes may enable detection of low-copy RNAs.</br>
 
 **If the number of probes were few...**
 
-- Relax GC content requirements from default to 40-60% with `--min_gc` & `--max_gc` parameters:
+- Relax GC content requirements from default (45-55%) to 40-60%:
   
   ```bash
   hcrkit -i target.fasta -d database -p output --initiator_id A161 --min_gc 40 --max_gc 60
@@ -307,95 +342,121 @@ The number of probes would affect the RNA detection. Starting the experiment wit
 
 - Review the on-target list:
 
-  Verify that `*_target_ids.txt` contains all relevant transcript IDs, because missing transcripts which is on-target may cause incorrect filtering.
+  - When using `--gff3`: Check the console output for "Found X mRNA entries" and similar genes
+  - When using `--target_ids`: Verify that the file contains all relevant transcript IDs
+  - Missing on-target transcripts may cause incorrect filtering
 
 ## Overview
 
 ### What is isHCR (_in situ_ Hybridization Chain Reaction)?
 
-isHCR is a powerful technique for RNA detection *in situ*. Unlike enzyme-based methods, isHCR visualize RNAs though formation of polymor composed with fluorescently-labeled oligos.<br>
+isHCR is a powerful technique for RNA detection *in situ*. Unlike enzyme-based methods, isHCR visualize RNAs though formation of polymors composed of fluorescently-labeled oligonucleotides.</br>
 
 ![isHCR](images/isHCR.png)
 <p align="center"> Figure 1 </p>
 
-The probe contains an initiator sequence (Figure 1A). The initiator hybridizes with hairpin DNAs, triggering a hybridization chain reaction that produces fluorescently labeled polymers (Figure 1B). To repress background signals, the probe is split (P1 and P2), and the pair of probes can efficiently trigger amplification.
+The probe contains an initiator sequence (Figure 1A). The initiator hybridizes with hairpin DNAs, triggering a hybridization chain reaction that produces fluorescently labeled polymers (Figure 1B). To suppress background signals, the probe is split (P1 and P2), and the pair of probes can efficiently trigger amplification.
 
 ### Guidline for design of probes
 
--	GC content: 40–60% (45–55% recomended). 
--	For each probe pair, sequence identity with off-target RNAs: ≤ 50% (verify with BLAST).
--	Design region in target RNA: CDS + UTR (CDS recomended).
+-	GC content: 40–60% (45–55% recomended)
+-	For each probe pair, sequence identity with off-target RNAs: ≤ 50% (verify with BLAST)
+-	Design region in target RNA: CDS + UTR (CDS recomended)
 
 ### Workflow & algorithm
 
-#### `extract_target_ids.py` (Identification of Target Transcript IDs)
+`hcrkit` automates the probe design process through th following workflow:
 
-**Scope**<br>
+#### Step 1. Load sequence
+`hcrkit` loads the target RNA sequence from the input FASTA file (`-i` parameter).
 
-Obtain a list of on-target transcripts IDs. This program is useful when gene encoding the target transcript generates different isoforms or when a ID of target transcript is unknown.
+#### Step 2. Load Target IDs
+`hcrkit` determines which transcripts should be considered as on-target for specificity filtering:
 
-1. Exaple 1 (When gene encodeing target mRNA has multiple isoforms)
-   
-   The *Drosophila melanogaster nanos* gene encodes two isoforms, *nanos-RA* and *nanos-RB*. When the user inputs the sequence of　*nanos-RA* into hcrkit, hcrkit recognizes the ID of *nanos-RA* as on-target, but not the ID of *nanos-RB*. Because *nanos-RA* and *nanos-RB* share a wide range of sequences, hcrkit cannot design many probes. `extract_target_ids.py` automatically provides IDs for both isoforms, enabling hcrkit to design probes correctly.
+- **Automatic mode (default)**: Extracts transcript ID from the FASTA header
+  - Example: `>XM_003242475.4 description...` → on-target ID: `XM_003242475.4`
 
-2. Exaple 2 (When the transcript ID is unknown)
-   
-   It can be difficult to find the correct transcript ID depending on the database. For example, a FASTA file of *nanos-RA* from FlyBase contains a FlyBase ID, whereas hcrkit (= BLAST database) uses NCBI IDs. Since finding the NCBI-format ID within FlyBase is often difficult, hcrkit does not function correctly. `extract_target_ids.py` easily seraches IDs in NCBI format.
+- **GFF3 mode (`--gff3` + `--gene_name`)**: Extracts all transcript IDs for the specified gene
+  - Searches the GFF3 file for mRNA entries where `gene=` matches the specified gene name (case-insensitive)
+  - Example: `--gene_name LOC10021649` finds all nanos isoforms
+  - Useful when:
+    - The target gene has multiple isoforms
+    - You don't know the exact transcript ID
+    - You want to avoid off-target hits to other isoforms of the same gene
 
-> [!Note]
-> User can skip this program only if target mRNA has no isoforms and the FASTA header of the target transciript starts with an NCBI-format ID.
+- **Manual mode (`--target_ids`)**: Uses IDs from the provided file
+  - Useful for your own data not registered in NCBI
+  - Gives precise control over on-target definition
 
-**Overview of algorithm**<br>
+#### Step 3. Generate Probe Region Candidates
+![load](images/step1.png)
 
-1. **Extract rows for mRNAs from GFF**
+**Generate 52-nt sliding windows**
 
-   In a GFF file, 3rd column contains the feature type (e.g., gene, mRNA, exon, CDS), and 9th column contains the attributes (including information such as ID and gene name). This program extracts rows where the feature type is mRNA.
+The probe region for a split probe pair is 52 nt. `hcrkit` divides the target transcript into overlapping 52-nt fragments using a sliding window (moving 1 nt at a time from 5′ to 3′ end).
 
-2. **Search all rows containing gene name of target transcript**
-   
-   In the attributes field, the gene name for each mRNA appears as `gene=`. User can provide the gene name via `-s` option when running the program. The program then selects rows whose `gene=` value exactly matches the specified gene name.
+**GC content filtering**
 
-3. **Identify IDs**
-   
-   From the rows selected in step 2, the program identifies all transcript IDs. The program takes `ID=` value from each attributes field, and removes the `"rna-"` prefix, and then outputs the ID-list as a txt file.
+Each 52-nt probe region is split into:
+- P1 binding site: first 25 nt (positions 1-25)
+- Spacer: 2 nt (positions 26-27)
+- P2 binding site: last 25 nt (positions 28-52)
 
-#### `hcrkit.py` (automated probe design tool)
+`hcrkit` calculates the GC content for both P1 and P2 binding sites. Only regions where **both** binding sites meet the GC criteria (default: 45-55%) are retained.</br>
 
-The program automates probe design through three Python scripts (steps 1–3) that work together seamlessly.
+**Remove duplicates**
 
-**Step 1: Creation of candidate probe binding sites & 1st filtering**
+If multiple probe regions have identical sequences, `hcrkit` keeps only one and removes the duplicates.
 
-![step1](images/step1.png)
-
-1. **Dividing RNA into 52-nt fragments**
-   
-   Region hybridized with a probe pair, probe region, is 52 nt (Figure1). This program devides transcript into 52-nt fragments from the 5′ to the 3′ end.
-
-2. **GC content filtering**
-   
-   This program splits the probe region into 25 nt segments at the 5′ and 3′ ends (= probe binding sites), and retains them whose GC content meets the criteria.  
-
-3. **Duplicate removal**
-   
-   If duplicate probe candidates with the same sequence are generated, this program keep one and remove the rest.
-
-**Step 2: 2nd filtering**
-
+#### Step 4. BLAST Search
 ![step2](images/step2.png)
 
-The program evaluates sequence identity between each candidate probe region and potential off-targets using BLAST. It distinguishes IDs of on-targets and off-targets based on a list of on-target IDs provided by user (these IDs can be easily generated with `extract_target_ids.py`). The program removes probe regions whose sequence identity with off-targets exceeds 50%.
+`hcrkit` performs BLASTN search against the reference transcriptome database to identify potential off-target binding sites for each probe region candidate.
 
-**Step 3: Selection non-overlapping probe binding sites & formatting for isHCR split probes**
+#### Step 5. Filter by Specificity
 
+For each BLAST hit, `hcrkit`:
+1. Checks if the hit is to an on-target transcript (based on the IDs determined in step 2)
+2. For off-target hits, calculates coverage: `(alignment length) / 52 * 100`
+3. Tracks the maximum off-target coverage for each probe region
+
+`hcrkit` removes probe regions where the maximum off-target coverage is ≥50%. This ensures that each probe has sufficient specificity to the target transcript.
+
+#### 6. Select Non-overlapping Probe Regions
 ![step3](images/step3.png)
 
-1. **Non-overlapping selection**
-   
-   The candidates for probe regions often overlap. This program select the non-overlapping regions by greedy algorithm. The greedy algorithm selects regions from the 5′ end that do not overlap.
+After specificity filtering, many valid probe regions may overlap with each other. To maximize probe coverage across the transcript, `hcrkit` selects non-overlapping regions using a greedy algorithm:
 
-2. **Reverse complimentation and joint initiator sequences**
-   
-   Because probe regions are sense strand sequences, the program reverse-complements them to convert into antisense strand sequences. <br>The sequences split into 25 nt segments at the 5′ and 3′ ends, and then they were conjugated with partial initiator sequences. 
+1. Sort all valid probe regions by start position (5′ to 3′)
+2. Select the first region
+3. Skip any regions that overlap with the selected region
+4. Select the next non-overlapping region
+5. Repeat until all regions are processed
+
+This approach ensures that selected probe regions do not overlap, maximizing the number of probes that can be used simultaneously.
+
+#### 7. Generate Probe Pairs
+For each selected probe region, `hcrkit` generates a split probe pair (P1 and P2):
+
+**Reverse complementation**
+
+Since probe regions are extracted from the sense strand, `hcrkit` converts them to antisense sequences (which will bind to the target mRNA) by reverse complementation.
+
+**Add initiator sequences**
+
+The initiator sequence is split at the specified position (default: 9 nt):
+- P1 probe: `[initiator (1-9)] + aa + [reverse_complement(P1 region)]`
+- P2 probe: `[reverse_complement(P2 region)] + aa + [initiator (10-21)]`
+
+The "aa" spacer sequences are added at the junction between initiator and binding region.
+
+#### 8. Write Outputs
+
+The final probe sequences are formatted as:
+- CSV file: for ordering oligonucleotides
+- Summary file: with probe set names and off-target coverage information
+
+This workflow is implemented across `hcrkit.py` (main pipeline) and `core.py` (core functions), working together to automate the entire probe design process.
 
 ## Citation
 

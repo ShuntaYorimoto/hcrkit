@@ -3,85 +3,138 @@
 HCR Probe Design Pipeline
 """
 
-# Version information
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
-import subprocess
 import argparse
-import os
+import sys
+from core import HCRProbeDesigner
 
-def run_step(step_name, cmd):
-    """Run pipeline step with error handling"""
-    print(f"\n--- {step_name} ---")
+
+def main():
+    parser = argparse.ArgumentParser(description='HCR Probe Design Pipeline', add_help=False)
+    
+    parser.add_argument('-h', '--help', action='help', help='Print help')
+    parser.add_argument('-i', '--input', required=True, metavar='PATH', help='Input FASTA file')
+    parser.add_argument('-d', '--database', required=True, metavar='PATH', help='BLAST database')
+    parser.add_argument('-p', '--prefix', required=True, metavar='STR', help='Output prefix')
+    parser.add_argument('--initiator_id', required=True, metavar='ID',
+                       help='Initiator ID (S23, S41, S45, S72, S73, A161)')
+    
+    target_group = parser.add_mutually_exclusive_group()
+    target_group.add_argument('--target_ids', metavar='PATH', help='Target ID list file')
+    target_group.add_argument('--gff3', metavar='PATH', help='GFF3 file (requires --gene_name)')
+    
+    parser.add_argument('--gene_name', metavar='STR', help='Gene name for GFF3 extraction')
+    parser.add_argument('--initiator_custom', metavar='PATH', help='Custom initiators CSV')
+    parser.add_argument('--initiator_split', type=int, metavar='INT', 
+                       help='Initiator split position (default: 9)')
+    parser.add_argument('--min_gc', type=float, metavar='FLOAT', help='Min GC%% (default: 45.0)')
+    parser.add_argument('--max_gc', type=float, metavar='FLOAT', help='Max GC%% (default: 55.0)')
+    parser.add_argument('-t', '--threads', type=int, metavar='INT', help='BLAST threads (default: 1)')
+    parser.add_argument('-v', '--version', action='version', version=f'hcrkit {__version__}')
+    
+    args = parser.parse_args()
+    
+    if args.gff3 and not args.gene_name:
+        parser.error("--gff3 requires --gene_name")
+    
+    if args.min_gc is not None and args.max_gc is not None:
+        if args.min_gc >= args.max_gc:
+            parser.error("--min_gc must be less than --max_gc")
+    
+    outdir = f'{args.prefix}_out'
+    
+    print("=" * 60)
+    print("HCR Probe Design Pipeline")
+    print("=" * 60)
+    
     try:
-        subprocess.run(cmd, check=True)
-        print(f"{step_name} completed!")
-    except subprocess.CalledProcessError as e:
-        print(f"Error in {step_name}: {e}")
-        exit(1)
+        designer = HCRProbeDesigner(args.input, args.prefix, outdir)
+        
+        print("\n" + "=" * 60)
+        print("Step 1: Load Sequences")
+        print("=" * 60)
+        designer.load_sequences()
+        
+        print("\n" + "=" * 60)
+        print("Step 2: Load Target IDs")
+        print("=" * 60)
+        
+        if args.gff3:
+            if not designer.extract_target_ids_from_gff3(args.gff3, args.gene_name):
+                sys.exit(1)
+        elif args.target_ids:
+            designer.load_target_ids_from_file(args.target_ids)
+        else:
+            designer.load_target_ids_from_sequences()
+        
+        print("\n" + "=" * 60)
+        print("Step 3: Generate Probe Region Candidates")
+        print("=" * 60)
+        
+        gc_kwargs = {}
+        if args.min_gc is not None:
+            gc_kwargs['min_gc'] = args.min_gc
+        if args.max_gc is not None:
+            gc_kwargs['max_gc'] = args.max_gc
+        
+        region_fasta = designer.generate_probe_candidates(**gc_kwargs)
+        
+        print("\n" + "=" * 60)
+        print("Step 4: BLAST Search")
+        print("=" * 60)
+        
+        blast_kwargs = {'database': args.database, 'region_fasta': region_fasta}
+        if args.threads is not None:
+            blast_kwargs['threads'] = args.threads
+        
+        blast_results = designer.run_blast_search(**blast_kwargs)
+        
+        print("\n" + "=" * 60)
+        print("Step 5: Filter by Specificity")
+        print("=" * 60)
+        designer.parse_blast_results(blast_results)
+        
+        print("\n" + "=" * 60)
+        print("Step 6: Select Non-overlapping Probe Regions")
+        print("=" * 60)
+        final_region_ids = designer.select_non_overlapping_probes()
+        
+        if not final_region_ids:
+            raise ValueError("No valid probe regions found")
+        
+        print("\n" + "=" * 60)
+        print("Step 7: Generate Probe Pairs")
+        print("=" * 60)
+        
+        initiator_seq = designer.load_initiators(args.initiator_id, args.initiator_custom)
+        
+        pairs_kwargs = {
+            'final_region_ids': final_region_ids,
+            'initiator_id': args.initiator_id,
+            'initiator_seq': initiator_seq
+        }
+        if args.initiator_split is not None:
+            pairs_kwargs['split_pos'] = args.initiator_split
+        
+        probe_pairs_df, summary_data = designer.generate_probe_pairs(**pairs_kwargs)
+        
+        print("\n" + "=" * 60)
+        print("Step 8: Write Outputs")
+        print("=" * 60)
+        designer.write_outputs(probe_pairs_df, summary_data, args.initiator_id)
+        
+        print("\n" + "=" * 60)
+        print("COMPLETED SUCCESSFULLY")
+        print("=" * 60)
+    
+    except KeyboardInterrupt:
+        print("\n\nInterrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        sys.exit(1)
 
-parser = argparse.ArgumentParser(description='HCR Probe Design Pipeline', add_help=False)
-parser.add_argument('-h', '--help', action='help', help='Print help information')
-parser.add_argument('-i', '--input', required=True, metavar='FILE', help='Input FASTA file')
-parser.add_argument('-d', '--database', required=True, metavar='FILE', help='BLAST database or FASTA file')
-parser.add_argument('-p', '--prefix', required=True, metavar='STRING', help='Prefix for output files')
-parser.add_argument('--initiator_id', required=True, metavar='ID', 
-                    help='HCR initiator ID. Predefined: S23, S41, S45, S72, S73, A161. Custom IDs available with --initiator_custom')
-parser.add_argument('--initiator_custom', metavar='FILE', help='Custom initiators CSV file')
-parser.add_argument('--initiator_split', type=int, default=9, 
-                    help='Position to split initiator sequence between P1 and P2 (default: 9)')
-parser.add_argument('--target_ids', metavar='FILE', help='On-target mRNA ID list file')
-parser.add_argument('--make_db', metavar='STRING', help='Create BLAST database with specified name')
-parser.add_argument('--min_gc', type=float, default=45, metavar='FLOAT', help='Min GC percentage (default: 45)')
-parser.add_argument('--max_gc', type=float, default=55, metavar='FLOAT', help='Max GC percentage (default: 55)')
-parser.add_argument('-t', '--threads', type=int, default=1, metavar='INT', help='CPU threads for BLAST')
-parser.add_argument('-v', '--version', action='version', version=f'hcrkit {__version__}', 
-                    help='Print version information')
 
-args = parser.parse_args()
-
-# Set output directory
-outdir = f'{args.prefix}_out'
-os.makedirs(outdir, exist_ok=True)
-gc_suffix = f"gc{int(args.min_gc)}-{int(args.max_gc)}"
-
-# Step 1: GC content filtering
-cmd1 = ['step01_filter_gc_content.py', 
-        '-i', args.input,
-        '-p', args.prefix,
-        '--min_gc', str(args.min_gc), 
-        '--max_gc', str(args.max_gc), 
-        '-o', outdir]
-run_step("Step 1: GC Content Filtering", cmd1)
-
-# Step 2: BLAST search
-temp_dir = os.path.join(outdir, 'temp')
-probe_fasta = os.path.join(temp_dir, f"{args.prefix}_probe_candidates_{gc_suffix}.fasta")
-cmd2 = ['step02_blast_search.py',
-        '--probe_fasta', probe_fasta, 
-        '-d', args.database, 
-        '-p', args.prefix,
-        '-t', str(args.threads), 
-        '--min_gc', str(args.min_gc), 
-        '--max_gc', str(args.max_gc), 
-        '-o', outdir]
-if args.make_db: cmd2.extend(['--make_db', args.make_db])
-run_step("Step 2: BLAST Search", cmd2)
-
-# Step 3: Filter and generate probes
-blast_results = os.path.join(temp_dir, f"{args.prefix}_blast_results_{gc_suffix}.tsv")
-cmd3 = ['step03_filter_and_generate.py',
-        '-i', args.input,
-        '--blast_results', blast_results, 
-        '--probe_fasta', probe_fasta, 
-        '-p', args.prefix, 
-        '--initiator_id', args.initiator_id, 
-        '--min_gc', str(args.min_gc), 
-        '--max_gc', str(args.max_gc), 
-        '-o', outdir]
-if args.target_ids: cmd3.extend(['--target_ids', args.target_ids])
-if args.initiator_custom: cmd3.extend(['--initiator_custom', args.initiator_custom])
-if args.initiator_split: cmd3.extend(['--initiator_split', str(args.initiator_split)])
-run_step("Step 3: Filter and Generate Probes", cmd3)
-
-print("\nhcrkit completed!")
+if __name__ == '__main__':
+    main()
