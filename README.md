@@ -136,7 +136,7 @@ hcrkit.py \
   -p ApNos1 \
   --initiator_id A161 \
   --gff3 GCF_005508785.2_pea_aphid_22Mar2018_4r6ur_v2_genomic.gff \
-  --gene_name LOC10021649
+  --gene_name LOC100216490
 ```
 
 With custom GC range and multiple threads
