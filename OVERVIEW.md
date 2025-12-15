@@ -41,11 +41,11 @@ The probe contains an initiator sequence (Figure SI1A). The initiator hybridizes
 
 ### How does `hcrkit` remove probe regions with off-target BLAST matches?
 
-`hcrkit` excludes candidate probe regions that show BLAST hits to off-target sequences. Because BLAST also returns hits to the intended on-target sequences, these on-target hits must be ignored when evaluating potential off-target matches. To enable this filtering, `hcrkit` first obtains the IDs of on-target sequences using three different methods described below (Figure SI2).
+`hcrkit` excludes candidate probe regions that show BLAST hits to off-target sequences. Because BLAST also returns hits to the intended on-target sequences, these on-target hits must be ignored when evaluating potential off-target matches. To enable this filtering, `hcrkit` first obtains the IDs of on-target sequences using three different methods described below (Figure SI4).
 
 #### 1. if there are no isoforms other than the target transcript (default)
 
-The on-target ID (highlighted in green) is extracted from the FASTA header (the string before the first whitespace) (Figure SI2).</br>
+The on-target ID (highlighted in green) is extracted from the FASTA header (the string before the first whitespace).</br>
 
 Example:
 |![Figure SI2](images/Figure_SI2.png)|
