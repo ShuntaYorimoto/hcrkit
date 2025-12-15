@@ -45,7 +45,7 @@ The probe contains an initiator sequence (Figure SI1A). The initiator hybridizes
 
 #### 1. if there are no isoforms other than the target transcript (default)
 
-The on-target ID (highlight in green) is extracted from the FASTA header (the string before the first whitespace) (Figure SI2).</br>
+The on-target ID (highlighted in green) is extracted from the FASTA header (the string before the first whitespace) (Figure SI2).</br>
 
 Example:
 |![Figure SI2](images/Figure_SI2.png)|
