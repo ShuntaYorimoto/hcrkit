@@ -13,7 +13,7 @@ The NCBI (National Center of Biotechnology Information) interface may change ove
 2. **Click "Assembly/Genomes"**.</br></br>
 |![Figure 2](images/fig2.png)|
 |:-:|
-<br>
+</br>
 
 3. **Select an appropriate assembly** for your experiments. In most cases, choose the assembly marked as the reference genome (indicated by a green checkmark).</br></br>
 |![Figure 3](images/fig3.png)|
@@ -23,16 +23,15 @@ The NCBI (National Center of Biotechnology Information) interface may change ove
 4. **Click "FTP"**. </br></br>
 |![Figure 4](images/fig4.png)|
 |:-:|
-<br>   
+</br>
 
 5. **Download the required files**.</br></br>
 - `GCF_*_genomic.gff.gz`: gene annotations
 - `GCF_*_rna.fna.gz`: transcript sequences
 |![Figure 5](images/fig5.png)|
 |:-:|
-<br>
+</br>
 
 > [!IMPORTANT]
 These files can exceed 10 GB. Ensure sufficient storage capacity before downloading.
-
-
+> 
