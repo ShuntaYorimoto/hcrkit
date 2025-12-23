@@ -3,7 +3,7 @@
 - [What is isHCR (*in situ* Hybridization Chain Reaction)?](#what-is-ishcr-in-situ-hybridization-chain-reaction)
   - [Guidline for design of probes](#guidline-for-design-of-probes)
 - [Overview of `hcrkit`](#overview-of-hcrkit)
-  - [How does `hcrkit` remove probe regions with off-target BLAST matches?](#how-does-hcrkit-remove-probe-regions-with-off-target-blast-matches)
+  - [How does `hcrkit` remove probe regions based on off-target BLAST matches?](#how-does-hcrkit-remove-probe-regions-based-on-off-target-blast-matches)
     - [1. if there are no isoforms other than the target transcript (default)](#1-if-there-are-no-isoforms-other-than-the-target-transcript-default)
     - [2. if there are isoforms rather than target transcript](#2-if-there-are-isoforms-rather-than-target-transcript)
 - [Workflow \& algorithm](#workflow--algorithm)
@@ -13,18 +13,18 @@
     - [Filter by Specificity](#filter-by-specificity)
   - [Perform several processes to generate final probes](#perform-several-processes-to-generate-final-probes)
     - [Select Non-overlapping Probe Regions](#select-non-overlapping-probe-regions)
-    - [Generate Probe Pairs](#generate-probe-pairs)
+    - [Generate Probe Sets](#generate-probe-sets)
   - [Write Outputs](#write-outputs)
 
 ## What is isHCR (*in situ* Hybridization Chain Reaction)?
 
-_in situ_ hybridization chain reaction (isHCR), a type of _in situ_ hybridization (ISH), enables RNA detection across multiple spatial scales, from organs to subcellular structures. Unlike enzyme-based methods, isHCR visualize RNAs though formation of polymors composed of fluorescently-labeled oligonucleotides.</br>
+_in situ_ hybridization chain reaction (isHCR), a type of _in situ_ hybridization (ISH), enables RNA detection across multiple spatial scales, from organs to subcellular structures. Unlike enzyme-based methods, isHCR visualize RNAs though formation of polymers composed of fluorescently-labeled oligonucleotides.</br>
 The probe contains an initiator sequence (Figure SI1A). The initiator hybridizes with hairpin DNAs, triggering a hybridization chain reaction that produces fluorescently labeled polymers (Figure SI1B). To suppress background signals, the probe is split (P1 and P2), and the probe set can efficiently trigger amplification.
 
 ### Guidline for design of probes
 
 - GC content: 40–60% (45–55% recomended)
-- For each probe set, sequence identity with off-target RNAs: ≤ 50% (verify with BLAST)
+- For each probe set, sequence identity with off-target RNAs: ≤ 50% (verify using BLAST)
 - Design region in target RNA: CDS + UTR (CDS recomended)
 
 |![Figure SI1](images/Figure_SI1.png)|
@@ -36,27 +36,27 @@ The probe contains an initiator sequence (Figure SI1A). The initiator hybridizes
 `hcrkit` designs probes following the workflow below:
 
 1. Detect candidate probe regions based on GC content
-2. Remove probe regions with off-target BLAST matches
+2. Remove probe regions based on off-target BLAST matches
 3. Perform several processes to generate final probes
 
-### How does `hcrkit` remove probe regions with off-target BLAST matches?
+### How does `hcrkit` remove probe regions based on off-target BLAST matches?
 
-`hcrkit` excludes candidate probe regions that show BLAST hits to off-target sequences. Because BLAST also returns hits to the intended on-target sequences, these on-target hits must be ignored when evaluating potential off-target matches. To enable this filtering, `hcrkit` first obtains the IDs of on-target sequences using three different methods described below (Figure SI4).
+`hcrkit` excludes candidate probe regions that show BLAST hits to off-target sequences. Because BLAST also returns hits to the intended on-target sequences, these on-target hits must be ignored when evaluating potential off-target matches. To enable this filtering, `hcrkit` first obtains the IDs of on-target sequences using the three different methods described below (Figure SI4).
 
-#### 1. if there are no isoforms other than the target transcript (default)
+#### 1. If there are no isoforms other than the target transcript (default)
 
-The on-target ID (highlighted in green) is extracted from the FASTA header (the string before the first whitespace).</br>
+The on-target ID (Figure SI2, highlighted in green) is extracted from the FASTA header (the string before the first whitespace).</br>
 
 Example:
 |![Figure SI2](images/Figure_SI2.png)|
 |:-:|
 <p align="center"> Figure SI2 </p>
 
-#### 2. if there are isoforms rather than target transcript
+#### 2. If there are isoforms in addition to the target transcript
 
-**2-A. automatically find out on-target IDs (with options `--gff3` + `--gene_name`)**<br>
+**2-A. Automatically find out on-target IDs (with options `--gff3` + `--gene_name`)**<br>
 
-The on-target IDs are identified from the GFF file. `hcrkit` processes the file as follows:
+The on-target IDs are identified from the GFF file. `hcrkit` processes the file as follows (Figure SI3):
 - Select rows with Feature = "mRNA" (highlighted in cyan)
 - Match gene= value in Attributes to `--gene_name` (highlighted in magenta)
 - Extract transcript IDs as on-target isoforms (highlighted in green)
@@ -70,11 +70,11 @@ Example:
 > [!Note]
 > When users specify `--gff3` + `--gene_name`, the list of on-target IDs is output as `{prefix}_target_ids.txt`
 
-**2-B. manually provide on-target IDs (with options `--target_ids`)**<br>
+**2-B. Manually provide on-target IDs (with options `--target_ids`)**<br>
 
 The on-target IDs are specified manually. It is useful when:
 
-- Users know all of on-target IDs beforehand.
+- Users know all of the on-target IDs beforehand.
 - Users wish to edit the list of on-target IDs obtained via 2-A.
 
 |![Figure SI4](images/Figure_SI4.png)|
@@ -89,7 +89,7 @@ The on-target IDs are specified manually. It is useful when:
 
 **Generate 52-nt sliding windows**
 
-The probe region for a split probe pair is 52 nt. `hcrkit` divides the target transcript into overlapping 52-nt fragments using a sliding window (moving 1 nt at a time from 5′ to 3′ end).
+The probe region for a split probe set is 52 nt. `hcrkit` divides the target transcript into overlapping 52-nt fragments using a sliding window (Figure SI5, moving 1 nt at a time from 5′ to 3′ end).
 
 **GC content filtering**
 
@@ -98,11 +98,11 @@ Each 52-nt probe region is split into:
 - Spacer: 2 nt (positions 26-27)
 - P2 binding site: last 25 nt (positions 28-52)
 
-`hcrkit` calculates the GC content for both P1 and P2 binding sites. Only regions where **both** binding sites meet the GC criteria (default: 45–55%) are retained.</br>
+`hcrkit` calculates the GC content for both P1 and P2 binding sites. Only regions where **both** binding sites meet the GC criteria (default: 45–55%) are retained (Figure SI5).</br>
 
 **Remove duplicates**
 
-If multiple probe regions have identical sequences, `hcrkit` keeps only one and removes the duplicates.
+If multiple probe regions have identical sequences, `hcrkit` keeps only one and removes the duplicates (Figure SI5).
 
 |![Figure SI5](images/Figure_SI5.png)|
 |:-:|
@@ -112,7 +112,7 @@ If multiple probe regions have identical sequences, `hcrkit` keeps only one and 
 
 #### BLAST Search
 
-`hcrkit` performs BLASTN search against the reference transcriptome database to identify potential off-target binding sites for each probe region candidate.
+`hcrkit` performs BLASTN search against the reference transcriptome database to identify potential off-target binding sites for each probe region candidate (Figure SI6).
 
 #### Filter by Specificity
 
@@ -121,7 +121,7 @@ For each BLAST hit, `hcrkit`:
 2. For off-target hits, calculates coverage: `(alignment length) / 52 * 100`
 3. Tracks the maximum off-target coverage for each probe region
 
-`hcrkit` removes probe regions where the maximum off-target coverage is ≥50%. This ensures that each probe has sufficient specificity to the target transcript.
+`hcrkit` removes probe regions where the maximum off-target coverage is ≥50% (Figure SI6). This ensures that each probe has sufficient specificity to the target transcript.
 
 |![Figure SI6](images/Figure_SI6.png)|
 |:-:|
@@ -131,7 +131,7 @@ For each BLAST hit, `hcrkit`:
 
 #### Select Non-overlapping Probe Regions
 
-After specificity filtering, many valid probe regions may overlap with each other. To maximize probe coverage across the transcript, `hcrkit` selects non-overlapping regions using a greedy algorithm:
+After specificity filtering, many valid probe regions may overlap with each other (Figure SI7). To maximize probe coverage across the transcript, `hcrkit` selects non-overlapping regions using a greedy algorithm:
 
 1. Sort all valid probe regions by start position (5′ to 3′)
 2. Select the first region
@@ -141,13 +141,13 @@ After specificity filtering, many valid probe regions may overlap with each othe
 
 This approach ensures that selected probe regions do not overlap, maximizing the number of probes that can be used simultaneously.
 
-#### Generate Probe Pairs
+#### Generate Probe Sets
 
-For each selected probe region, `hcrkit` generates a split probe pair (P1 and P2):
+For each selected probe region, `hcrkit` generates a split probe set (P1 and P2) (Figure SI7).
 
 **Reverse complementation**
 
-Since probe regions are extracted from the sense strand, `hcrkit` converts them to antisense sequences (which will bind to the target mRNA) by reverse complementation.
+Because probe regions are extracted from the sense strand, `hcrkit` converts them to antisense sequences (which will bind to the target mRNA) by reverse complementation (Figure SI7).
 
 **Add initiator sequences**
 
@@ -155,7 +155,7 @@ The initiator sequence is split at the specified position (default: 9 nt):
 - P1 probe: `[initiator (1-9)] + aa + [reverse_complement(P1 region)]`
 - P2 probe: `[reverse_complement(P2 region)] + aa + [initiator (10-21)]`
 
-The "aa" spacer sequences are added at the junction between initiator and binding region (Figure SI1).
+The "aa" spacer sequences are added at the junction between initiator and binding region (Figure SI1, SI7).
 
 |![Figure SI7](images/Figure_SI7.png)|
 |:-:|
