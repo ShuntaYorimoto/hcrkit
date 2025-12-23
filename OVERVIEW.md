@@ -5,7 +5,7 @@
 - [Overview of `hcrkit`](#overview-of-hcrkit)
   - [How does `hcrkit` remove probe regions based on off-target BLAST matches?](#how-does-hcrkit-remove-probe-regions-based-on-off-target-blast-matches)
     - [1. if there are no isoforms other than the target transcript (default)](#1-if-there-are-no-isoforms-other-than-the-target-transcript-default)
-    - [2. if there are isoforms rather than target transcript](#2-if-there-are-isoforms-rather-than-target-transcript)
+    - [2. if there are isoforms in addition to the target transcript](#2-if-there-are-isoforms-in-addition-to-the-target-transcript)
 - [Workflow \& algorithm](#workflow--algorithm)
   - [Detect candidate probe regions based on GC content](#detect-candidate-probe-regions-based-on-gc-content)
   - [Remove probe regions with off-target BLAST matches](#remove-probe-regions-with-off-target-blast-matches)
