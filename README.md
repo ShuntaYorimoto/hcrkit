@@ -295,4 +295,8 @@ Although several mRNAs were detected with 2 probe sets, using 10 or more probe s
 ## Citing `hcrkit`
 
 If you use `hcrkit` in your research, please cite the following paper:
-> Manuscript in preparation
+> Yasuhiro Kozono, Kyohei Mikami, Shunta Yorimoto, Taisei Hayashi, Hibiki Okamura, Qingyin Qian, Ryo Hoshino, Takumi Kamiyama, Yuya Sanaki, Miho Asaoka, Sonoko Ohsawa, Shota Azuma, Yuka W Iwasaki, Makoto Hayashi, Yu Hayashi, Shuji Shigenobu, Ryusuke Niwa, Satoru Kobayashi. (2026)
+> EC-isHCR: A Rapid Method for in Situ Hybridization Chain Reaction in Diverse Animal Samples.
+> *Methods* 254: 59–69.
+> https://doi.org/10.1016/j.ymeth.2026.06.007
+
